@@ -1,51 +1,52 @@
-// Vice City Studio visual processing engine:
-// 5 skin-safe split-tone Vice color grades, Brightness/Contrast/Saturation,
-// Painterly / Poster Ink illustration pass (selective smooth + soft tonal banding + Sobel ink edges),
+// Vice City Studio visual processing engine (V2 Key-Art Calibrated):
+// 5 skin-safe split-tone Vice color grades with crisp S-curve poster micro-contrast,
+// Brightness/Contrast/Saturation, Painterly / Poster Ink illustration pass
+// (edge-preserving gouache + soft tonal banding + skin-gentle Sobel comic ink),
 // and an LRU bitmap cache (preview <=900px, export full-res).
 
 export const PREVIEW_PROCESS_MAX_DIM = 900;
-const LRU_CACHE_LIMIT = 18;
+const LRU_CACHE_LIMIT = 24;
 
 export const GRADE_PRESETS = Object.freeze({
   'vice-sunset': Object.freeze({
-    shadow: [28, 12, 62],
-    mid: [255, 72, 146],
-    high: [255, 224, 152],
-    shadowAmt: 0.34,
+    shadow: [20, 8, 50],
+    mid: [255, 68, 142],
+    high: [255, 224, 148],
+    shadowAmt: 0.30,
+    midAmt: 0.14,
+    highAmt: 0.25,
+  }),
+  'miami-heat': Object.freeze({
+    shadow: [34, 9, 28],
+    mid: [255, 96, 52],
+    high: [255, 236, 158],
+    shadowAmt: 0.28,
+    midAmt: 0.18,
+    highAmt: 0.27,
+  }),
+  'neon-midnight': Object.freeze({
+    shadow: [8, 14, 48],
+    mid: [255, 42, 154],
+    high: [64, 238, 255],
+    shadowAmt: 0.38,
+    midAmt: 0.18,
+    highAmt: 0.30,
+  }),
+  'golden-hour': Object.freeze({
+    shadow: [38, 16, 14],
+    mid: [246, 152, 62],
+    high: [255, 242, 196],
+    shadowAmt: 0.26,
     midAmt: 0.16,
     highAmt: 0.26,
   }),
-  'miami-heat': Object.freeze({
-    shadow: [42, 12, 34],
-    mid: [255, 98, 56],
-    high: [255, 238, 162],
-    shadowAmt: 0.32,
-    midAmt: 0.2,
-    highAmt: 0.28,
-  }),
-  'neon-midnight': Object.freeze({
-    shadow: [10, 18, 58],
-    mid: [255, 42, 154],
-    high: [64, 238, 255],
-    shadowAmt: 0.42,
-    midAmt: 0.2,
-    highAmt: 0.32,
-  }),
-  'golden-hour': Object.freeze({
-    shadow: [46, 20, 18],
-    mid: [246, 154, 66],
-    high: [255, 242, 198],
-    shadowAmt: 0.28,
-    midAmt: 0.18,
-    highAmt: 0.28,
-  }),
   'ocean-drive': Object.freeze({
-    shadow: [10, 36, 60],
-    mid: [34, 214, 238],
-    high: [255, 144, 190],
-    shadowAmt: 0.36,
-    midAmt: 0.19,
-    highAmt: 0.26,
+    shadow: [8, 28, 52],
+    mid: [30, 214, 240],
+    high: [255, 142, 188],
+    shadowAmt: 0.32,
+    midAmt: 0.17,
+    highAmt: 0.25,
   }),
 });
 
@@ -89,14 +90,14 @@ function makeCacheKey(photoId, effects, isExport) {
 }
 
 function computeSkinWeight(r, g, b, lum) {
-  // Smooth skin-tone detector (warm peach/tan/deep skin hues) to keep portraits natural
-  if (lum < 40 || lum > 235) return 0;
-  if (r <= g || g <= b * 0.85) return 0;
+  // Smooth skin-tone detector (warm peach/tan/deep skin hues) so portraits stay natural
+  if (lum < 38 || lum > 238) return 0;
+  if (r <= g || g <= b * 0.84) return 0;
   const rg = r - g;
   const gb = g - b;
-  if (rg < 10 || rg > 95 || gb < 4) return 0;
-  const warmth = Math.min(1, rg / 35) * Math.min(1, gb / 22);
-  return Math.max(0, Math.min(1, warmth * 0.72));
+  if (rg < 10 || rg > 100 || gb < 4) return 0;
+  const warmth = Math.min(1, rg / 32) * Math.min(1, gb / 20);
+  return Math.max(0, Math.min(1, warmth * 0.80));
 }
 
 function applyColorGradeAndTone(data, effects) {
@@ -118,16 +119,31 @@ function applyColorGradeAndTone(data, effects) {
     let b = data[i + 2];
 
     const origLum = 0.299 * r + 0.587 * g + 0.114 * b;
-    const skinProtect = 1 - computeSkinWeight(r, g, b, origLum) * 0.62;
+    const skinW = computeSkinWeight(r, g, b, origLum);
+    const skinProtect = 1 - skinW * 0.72;
 
     // Brightness & Contrast around mid-gray
     r = (r * brightMul - 128) * contrastMul + 128;
     g = (g * brightMul - 128) * contrastMul + 128;
     b = (b * brightMul - 128) * contrastMul + 128;
 
-    // Saturation boost (slightly gentler on protected skin tones)
+    // Subtle key-art S-curve black anchor so contact-sheet contrast stays razor-sharp
+    const curLum = Math.max(0, Math.min(255, 0.299 * r + 0.587 * g + 0.114 * b));
+    const tn = curLum / 255;
+    // Gentle S-curve push (stronger outside skin tones to preserve facial gradients)
+    const sCurve = tn * tn * (3 - 2 * tn);
+    const sBlend = 0.14 * (0.45 + 0.55 * skinProtect);
+    const targetLum = (tn * (1 - sBlend) + sCurve * sBlend) * 255;
+    if (curLum > 1) {
+      const ratio = targetLum / curLum;
+      r *= ratio;
+      g *= ratio;
+      b *= ratio;
+    }
+
+    // Saturation boost (gentler on skin tones so portraits remain natural & luminous)
     const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-    const effSat = 1 + (satMul - 1) * (0.65 + 0.35 * skinProtect);
+    const effSat = 1 + (satMul - 1) * (0.55 + 0.45 * skinProtect);
     r = lum + (r - lum) * effSat;
     g = lum + (g - lum) * effSat;
     b = lum + (b - lum) * effSat;
@@ -136,7 +152,7 @@ function applyColorGradeAndTone(data, effects) {
     const t = Math.max(0, Math.min(1, lum / 255));
     const wShadow = (1 - t) * (1 - t) * preset.shadowAmt * skinProtect;
     const wMid = 4 * t * (1 - t) * preset.midAmt * skinProtect;
-    const wHigh = t * t * preset.highAmt * (0.55 + 0.45 * skinProtect);
+    const wHigh = t * t * preset.highAmt * (0.50 + 0.50 * skinProtect);
 
     r = r * (1 - wShadow - wMid - wHigh) + sr * wShadow + mr * wMid + hr * wHigh;
     g = g * (1 - wShadow - wMid - wHigh) + sg * wShadow + mg * wMid + hg * wHigh;
@@ -154,16 +170,22 @@ function applyPainterlyPosterInk(data, width, height, strength) {
 
   const src = new Uint8ClampedArray(data);
   const luma = new Float32Array(width * height);
+  const skinMask = new Float32Array(width * height);
   for (let p = 0, i = 0; p < luma.length; p++, i += 4) {
-    luma[p] = 0.299 * src[i] + 0.587 * src[i + 1] + 0.114 * src[i + 2];
+    const r = src[i];
+    const g = src[i + 1];
+    const b = src[i + 2];
+    const y = 0.299 * r + 0.587 * g + 0.114 * b;
+    luma[p] = y;
+    skinMask[p] = computeSkinWeight(r, g, b, y);
   }
 
-  // Soft edge-preserving 3x3 gouache smoothing + tonal posterize + Sobel dark ink contours
-  const smoothBlend = s * 0.72;
-  const posterBlend = s * 0.42;
-  const inkBlend = s * 0.85;
-  const bands = 9 - Math.round(s * 3); // 9 down to 6 lush tonal bands
-  const diffThresh = 32;
+  // Calibrated gouache brushwork + tonal posterization + crisp Sobel key-art ink contours
+  const smoothBlend = s * 0.68;
+  const posterBlend = s * 0.38;
+  const inkBlend = s * 0.92;
+  const bands = 10 - Math.round(s * 3.5); // 10 down to 6 lush illustrated tonal bands
+  const diffThresh = 30;
 
   for (let y = 1; y < height - 1; y++) {
     const rowOff = y * width;
@@ -173,12 +195,12 @@ function applyPainterlyPosterInk(data, width, height, strength) {
       if (src[idx + 3] === 0) continue;
 
       const cLum = luma[p];
+      const skinW = skinMask[p];
       let sumR = src[idx] * 2;
       let sumG = src[idx + 1] * 2;
       let sumB = src[idx + 2] * 2;
       let weight = 2;
 
-      // Edge-preserving 4-neighbor + diagonal selective average
       const neighbors = [
         p - 1, p + 1, p - width, p + width,
         p - width - 1, p - width + 1, p + width - 1, p + width + 1,
@@ -187,7 +209,7 @@ function applyPainterlyPosterInk(data, width, height, strength) {
         const np = neighbors[n];
         if (Math.abs(luma[np] - cLum) < diffThresh) {
           const ni = np * 4;
-          const w = n < 4 ? 1.2 : 0.75;
+          const w = n < 4 ? 1.25 : 0.72;
           sumR += src[ni] * w;
           sumG += src[ni + 1] * w;
           sumB += src[ni + 2] * w;
@@ -195,15 +217,25 @@ function applyPainterlyPosterInk(data, width, height, strength) {
         }
       }
 
-      let r = src[idx] * (1 - smoothBlend) + (sumR / weight) * smoothBlend;
-      let g = src[idx + 1] * (1 - smoothBlend) + (sumG / weight) * smoothBlend;
-      let b = src[idx + 2] * (1 - smoothBlend) + (sumB / weight) * smoothBlend;
+      const avgR = sumR / weight;
+      const avgG = sumG / weight;
+      const avgB = sumB / weight;
+      let r = src[idx] * (1 - smoothBlend) + avgR * smoothBlend;
+      let g = src[idx + 1] * (1 - smoothBlend) + avgG * smoothBlend;
+      let b = src[idx + 2] * (1 - smoothBlend) + avgB * smoothBlend;
 
-      // Soft illustration tonal banding on luminance (preserves chromatic richness)
+      // Subtle poster-ink local clarity punch (unsharp contrast) on non-flat areas
+      const clarityAmt = s * (0.28 - skinW * 0.14);
+      r += (src[idx] - avgR) * clarityAmt;
+      g += (src[idx + 1] - avgG) * clarityAmt;
+      b += (src[idx + 2] - avgB) * clarityAmt;
+
+      // Soft illustration tonal banding on luminance (gentler on skin so faces look painted, not blotchy)
       const curLum = Math.max(1, 0.299 * r + 0.587 * g + 0.114 * b);
       const qStep = 255 / bands;
       const qLum = Math.round(curLum / qStep) * qStep;
-      const targetLum = curLum * (1 - posterBlend) + qLum * posterBlend;
+      const effPoster = posterBlend * (1 - skinW * 0.48);
+      const targetLum = curLum * (1 - effPoster) + qLum * effPoster;
       const lumRatio = targetLum / curLum;
       r *= lumRatio;
       g *= lumRatio;
@@ -223,11 +255,12 @@ function applyPainterlyPosterInk(data, width, height, strength) {
       const gy = -tl - 2 * tc - tr + bl + 2 * bc + br;
       const grad = Math.hypot(gx, gy);
 
-      if (grad > 68) {
-        const edgeAlpha = Math.min(0.88, ((grad - 68) / 175) * inkBlend);
-        r = r * (1 - edgeAlpha) + 14 * edgeAlpha;
-        g = g * (1 - edgeAlpha) + 7 * edgeAlpha;
-        b = b * (1 - edgeAlpha) + 24 * edgeAlpha;
+      const inkThresh = 62 + skinW * 26;
+      if (grad > inkThresh) {
+        const edgeAlpha = Math.min(0.92, ((grad - inkThresh) / 160) * inkBlend * (1 - skinW * 0.35));
+        r = r * (1 - edgeAlpha) + 12 * edgeAlpha;
+        g = g * (1 - edgeAlpha) + 5 * edgeAlpha;
+        b = b * (1 - edgeAlpha) + 20 * edgeAlpha;
       }
 
       data[idx] = clamp255(r);

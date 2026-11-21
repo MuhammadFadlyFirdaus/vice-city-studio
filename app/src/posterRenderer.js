@@ -1,11 +1,15 @@
-// Core 2D Canvas compositor for Vice City Studio.
+// Core 2D Canvas compositor for Vice City Studio (V2 Collector's Box-Art Edition).
 // Supports both interactive preview mode (with subtle panel selection outline)
 // and clean lossless export mode (zero selection gizmos, full resolution).
 
 import { resolveTemplatePanels } from './templates.js';
 import { drawCoverTypography } from './typography.js';
 import { processPhotoWithEffects } from './imageEffects.js';
-import { drawAtmosphericOverlays } from './overlays.js';
+import {
+  drawAtmosphericOverlays,
+  drawCollectorPosterFrame,
+  getCollectorFrameMetrics,
+} from './overlays.js';
 
 function tracePolygon(ctx, points) {
   if (!points || points.length === 0) return;
@@ -106,16 +110,30 @@ export function renderPoster(canvas, store, options = {}) {
 
   const ctx = canvas.getContext('2d', { alpha: false });
   const minDim = Math.min(width, height);
-  const panelGeometries = resolveTemplatePanels(state.templateId, format.id, width, height);
+  const frameState = state.frame || {};
+  const frameMetrics = getCollectorFrameMetrics(width, height, frameState);
+  const panelGeometries = resolveTemplatePanels(
+    state.templateId,
+    format.id,
+    width,
+    height,
+    {
+      topInset: frameMetrics.topInset,
+      bottomInset: frameMetrics.bottomInset,
+    },
+  );
 
   // 1. Jet-black comic ink frame background
   ctx.save();
-  ctx.fillStyle = '#07040c';
+  ctx.fillStyle = '#06030b';
   ctx.fillRect(0, 0, width, height);
   ctx.restore();
 
-  // 2. Render each clipped photo panel + subtle per-panel comic ink stroke
-  const inkStroke = Math.max(4, Math.round(minDim * 0.0065));
+  // 2. Render each clipped photo panel + crisp comic ink gutter + cream hairline inner border
+  const inkStroke = Math.max(4, Math.round(minDim * 0.0055));
+  const showHairline = Boolean(frameState.showCollectorFrame && frameState.showInnerHairline);
+  const hairlineW = Math.max(1.8, minDim * 0.0022);
+
   for (let i = 0; i < panelGeometries.length; i++) {
     const geom = panelGeometries[i];
     const panelState = state.panels[i] || { photoId: null, zoom: 1, panX: 0, panY: -0.18, flipX: false };
@@ -138,34 +156,53 @@ export function renderPoster(canvas, store, options = {}) {
       processPhoto: options.processPhoto || processPhotoWithEffects,
     });
 
-    // Subtle inner ink rim for crisp separation
+    // Subtle inner ink rim for crisp gutter separation
     tracePolygon(ctx, geom.points);
-    ctx.strokeStyle = '#050308';
+    ctx.strokeStyle = '#050209';
     ctx.lineWidth = inkStroke * 2;
     ctx.stroke();
     ctx.restore();
+
+    // Sharp cream/white hairline border inside the black ink gutter around every panel
+    if (showHairline) {
+      ctx.save();
+      tracePolygon(ctx, geom.points);
+      ctx.strokeStyle = geom.isHero ? 'rgba(255, 245, 224, 0.92)' : 'rgba(248, 240, 224, 0.78)';
+      ctx.lineWidth = hairlineW;
+      ctx.lineJoin = 'miter';
+      ctx.stroke();
+      ctx.restore();
+    }
   }
 
-  // 3. Atmospheric overlays (sunset wash, dual neon rim, palm silhouettes, horizon disc, grain, vignette)
+  // 3. Atmospheric overlays (clipped to panel stage so collector strips stay crisp)
   const overlaysFn = options.drawOverlays || drawAtmosphericOverlays;
-  overlaysFn(ctx, width, height, state.effects, panelGeometries);
+  overlaysFn(ctx, width, height, state.effects, panelGeometries, frameMetrics);
 
   // 4. Outer crisp comic frame border around entire poster
   ctx.save();
-  const outerFrame = Math.max(8, Math.round(minDim * 0.014));
-  ctx.strokeStyle = '#06030a';
+  const outerFrame = Math.max(6, Math.round(minDim * 0.008));
+  ctx.strokeStyle = '#050209';
   ctx.lineWidth = outerFrame * 2;
   ctx.strokeRect(0, 0, width, height);
-  // Subtle hairline sunset accent inset inside outer frame
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
-  ctx.lineWidth = Math.max(1.5, minDim * 0.0018);
-  ctx.strokeRect(outerFrame, outerFrame, width - outerFrame * 2, height - outerFrame * 2);
   ctx.restore();
 
-  // 5. Layered Retro-Chrome & Neon Typography + Badges
-  drawCoverTypography(ctx, width, height, state.typography, panelGeometries, state.panels);
+  // 5. Collector's Box-Art / Movie Poster Frame (Top Critic Strip + Bottom Billing Block)
+  drawCollectorPosterFrame(ctx, width, height, frameState, frameMetrics);
 
-  // 6. Interactive selection gizmo (PREVIEW ONLY — never drawn in export or cover screenshots)
+  // Subtle cream outer collector hairline inset around the whole poster
+  if (frameMetrics.enabled) {
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255, 244, 222, 0.26)';
+    ctx.lineWidth = Math.max(1.5, minDim * 0.0016);
+    ctx.strokeRect(3, 3, width - 6, height - 6);
+    ctx.restore();
+  }
+
+  // 6. Layered Outrun Striped Chrome & Neon Typography + Slanted Role Tags + Gold-Foil Medallion
+  drawCoverTypography(ctx, width, height, state.typography, panelGeometries, state.panels, frameMetrics);
+
+  // 7. Interactive selection gizmo (PREVIEW ONLY — never drawn in export or cover screenshots)
   if (!hideGizmos) {
     const selIdx = state.selectedPanelIndex;
     const selGeom = panelGeometries[selIdx];

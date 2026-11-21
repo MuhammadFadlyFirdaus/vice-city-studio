@@ -1,5 +1,5 @@
-// Main application orchestrator for Vice City Studio.
-// Loads bundled SIL OFL fonts & offline demo photos, wires the 3-pane UI,
+// Main application orchestrator for Vice City Studio (V2).
+// Loads bundled SIL OFL fonts & 6 offline demo photos, wires the 3-pane UI,
 // connects canvas pan/zoom/drop interactions, lossless PNG export, keyboard
 // shortcuts (Ctrl+Z / Ctrl+Y), and deterministic ?shot= screenshot scenes.
 
@@ -92,6 +92,12 @@ export async function bootstrapViceCityStudio() {
     const tab = params.get('tab');
     const disc = params.get('disc');
     const roles = params.get('roles');
+    const frame = params.get('frame');
+    const critic = params.get('critic');
+    const vol = params.get('vol');
+    const coming = params.get('coming');
+    const billing = params.get('billing');
+    const seal = params.get('seal');
 
     studioStore.mutate((draft) => {
       if (fmt === 'landscape' || fmt === 'portrait' || fmt === 'square') draft.formatId = fmt;
@@ -103,7 +109,15 @@ export async function bootstrapViceCityStudio() {
       if (grade) draft.effects.gradePreset = grade;
       if (tab) draft.activeTab = tab;
       if (disc === '1') draft.effects.showHorizonDisc = true;
+      if (roles === '0') draft.typography.showRoleTags = false;
       if (roles === '1') draft.typography.showRoleTags = true;
+      if (frame === '0') draft.frame.showCollectorFrame = false;
+      if (frame === '1') draft.frame.showCollectorFrame = true;
+      if (critic !== null) draft.frame.criticQuote = critic;
+      if (vol !== null) draft.frame.editionVol = vol;
+      if (coming !== null) draft.frame.comingSoonText = coming;
+      if (billing !== null) draft.frame.billingCredits = billing;
+      if (seal !== null) draft.typography.sealText = seal;
     }, { recordHistory: false, reason: 'init' });
   }
 
@@ -154,16 +168,18 @@ function applyCuratedDemoPanels(store) {
 
   const byId = (id) => (store.getPhoto(id) ? id : photos[0].id);
   const demoPanels = [
-    // Panel 0: Dominant Hero — Woman leaning on vintage red convertible
-    { photoId: byId('sample-boulevard'), zoom: 1.06, panX: -0.04, panY: -0.34, flipX: false, role: 'HERO' },
-    // Panel 1: Top-Left — Dusk rooftop skyline character
-    { photoId: byId('sample-rooftop'), zoom: 1.12, panX: 0.0, panY: -0.32, flipX: false, role: 'DUSK' },
-    // Panel 2: Bottom-Left — Neon rain-slicked 80s white coupe
-    { photoId: byId('sample-coupe'), zoom: 1.08, panX: 0.04, panY: 0.08, flipX: false, role: 'CRUISE' },
-    // Panel 3: Top-Right — Turquoise coastal pier (upper-third framed so hat/face never clips)
-    { photoId: byId('sample-pier'), zoom: 1.04, panX: -0.06, panY: -0.78, flipX: false, role: 'COAST' },
-    // Panel 4: Bottom-Right — Glowing pink/cyan Art Deco neon hotel & palms detail
-    { photoId: byId('sample-coupe'), zoom: 2.15, panX: 0.94, panY: -0.96, flipX: false, role: 'VICE' },
+    // Panel 0: Dominant Center Hero — Woman leaning on vintage red convertible
+    { photoId: byId('sample-boulevard'), zoom: 1.06, panX: -0.04, panY: -0.34, flipX: false, role: 'THE DRIVER' },
+    // Panel 1: Top-Left Cast — Dusk rooftop skyline character
+    { photoId: byId('sample-rooftop'), zoom: 1.10, panX: 0.0, panY: -0.22, flipX: false, role: 'THE FIXER' },
+    // Panel 2: Bottom-Left / Bottom Wide Action — Neon rain-slicked 80s white coupe
+    { photoId: byId('sample-coupe'), zoom: 1.04, panX: 0.0, panY: 0.16, flipX: false, role: 'THE GETAWAY' },
+    // Panel 3: Top-Right Cast — Turquoise coastal pier captain (upper-third face-safe)
+    { photoId: byId('sample-pier'), zoom: 1.06, panX: -0.18, panY: -0.62, flipX: false, role: 'THE CAPTAIN' },
+    // Panel 4: Top-Left Inner / Mid-Left Cast — Twilight marina lookout
+    { photoId: byId('sample-lookout'), zoom: 1.06, panX: 0.0, panY: -0.26, flipX: false, role: 'THE LOOKOUT' },
+    // Panel 5: Top-Right Outer / Mid-Right Cast — Sunset bay syndicate boss
+    { photoId: byId('sample-boss'), zoom: 1.04, panX: 0.0, panY: -0.24, flipX: false, role: 'THE BOSS' },
   ];
 
   store.mutate((draft) => {

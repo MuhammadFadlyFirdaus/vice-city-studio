@@ -1,5 +1,6 @@
 // Central state store for Vice City Studio: pub/sub updates, 3 required export
-// formats, upper-third face-safe panel crop defaults, and 15-step Undo/Redo.
+// formats, upper-third face-safe panel crop defaults, Collector's Poster Frame state,
+// and 15-step Undo/Redo.
 
 export const EXPORT_FORMATS = Object.freeze({
   landscape: Object.freeze({
@@ -27,7 +28,14 @@ export const EXPORT_FORMATS = Object.freeze({
 
 export const UNDO_LIMIT = 15;
 
-export const DEFAULT_PANEL_ROLES = ['HERO', 'DUSK', 'CRUISE', 'COAST', 'VICE'];
+export const DEFAULT_PANEL_ROLES = [
+  'THE DRIVER',
+  'THE FIXER',
+  'THE GETAWAY',
+  'THE CAPTAIN',
+  'THE LOOKOUT',
+  'THE BOSS',
+];
 
 export function createDefaultPanelState(index = 0, photoId = null) {
   return {
@@ -43,7 +51,7 @@ export function createDefaultPanelState(index = 0, photoId = null) {
 export function createDefaultDesignState() {
   return {
     formatId: 'landscape',
-    templateId: 'classic-vice',
+    templateId: 'crime-epic',
     selectedPanelIndex: 0,
     activeTab: 'templates',
     panels: [
@@ -52,36 +60,47 @@ export function createDefaultDesignState() {
       createDefaultPanelState(2, null),
       createDefaultPanelState(3, null),
       createDefaultPanelState(4, null),
+      createDefaultPanelState(5, null),
     ],
     typography: {
       mainTitle: 'NEON SHORE',
       titleFont: 'Anton',
-      titleStyle: 'retro-chrome',
+      titleStyle: 'outrun-striped',
       titlePos: 'bottom',
       titleAlign: 'center',
       titleSize: 100,
-      titleOutline: 12,
-      titleShadow: 10,
+      titleOutline: 14,
+      titleShadow: 12,
       subtitle: 'Vice Nights',
       subtitleFont: 'Pacifico',
       subtitleColor: '#ff4fd8',
       subtitleSize: 100,
-      subtitleGlow: 75,
+      subtitleGlow: 78,
       tagline: 'SUNSET BOULEVARD • COASTAL EDITION',
-      showRoleTags: false,
+      showRoleTags: true,
       showEditionSeal: true,
-      sealText: 'VICE EDITION • 26',
+      sealText: 'ORIGINAL COVER ART • ★★★',
+    },
+    frame: {
+      showCollectorFrame: true,
+      showCriticStrip: true,
+      criticQuote: 'AN INSTANT COASTAL CLASSIC',
+      editionVol: 'VOL. 1',
+      showBillingBlock: true,
+      comingSoonText: 'COMING SOON',
+      billingCredits: 'VICE CITY STUDIO PRESENTS • A NEON SHORE PRODUCTION • SHOT IN MIAMI • MUSIC BY SYNTHWAVE COLLECTIVE',
+      showInnerHairline: true,
     },
     effects: {
       gradePreset: 'vice-sunset',
-      painterly: 58,
-      brightness: 102,
-      contrast: 114,
-      saturation: 118,
-      sunsetOverlay: 42,
-      neonRim: 48,
-      grain: 22,
-      vignette: 36,
+      painterly: 62,
+      brightness: 101,
+      contrast: 120,
+      saturation: 122,
+      sunsetOverlay: 34,
+      neonRim: 46,
+      grain: 18,
+      vignette: 34,
       showPalms: true,
       showHorizonDisc: false,
     },
@@ -116,7 +135,9 @@ export function createStudioStore() {
 
   function ensurePanelCount(count) {
     while (state.panels.length < count) {
-      state.panels.push(createDefaultPanelState(state.panels.length, null));
+      const idx = state.panels.length;
+      const fallbackPhoto = photoOrder.length > 0 ? photoOrder[idx % photoOrder.length] : null;
+      state.panels.push(createDefaultPanelState(idx, fallbackPhoto));
     }
     if (state.selectedPanelIndex >= count) {
       state.selectedPanelIndex = Math.max(0, count - 1);
@@ -152,7 +173,7 @@ export function createStudioStore() {
       }, { recordHistory: true, reason: 'format' });
     },
 
-    setTemplate(templateId, panelCount = 5) {
+    setTemplate(templateId, panelCount = 6) {
       if (state.templateId === templateId) return;
       this.mutate((draft) => {
         draft.templateId = templateId;
@@ -195,6 +216,12 @@ export function createStudioStore() {
       this.mutate((draft) => {
         Object.assign(draft.typography, patch);
       }, { recordHistory, reason: 'typography' });
+    },
+
+    updateFrame(patch, { recordHistory = true } = {}) {
+      this.mutate((draft) => {
+        Object.assign(draft.frame, patch);
+      }, { recordHistory, reason: 'frame' });
     },
 
     updateEffects(patch, { recordHistory = true } = {}) {
@@ -255,7 +282,6 @@ export function createStudioStore() {
       if (undoStack.length === 0) return false;
       redoStack.push(cloneSnapshot(state));
       const prev = undoStack.pop();
-      // Keep only photo assignments that still exist in library
       for (const panel of prev.panels) {
         if (panel.photoId && !photos.has(panel.photoId)) {
           panel.photoId = photoOrder[0] || null;

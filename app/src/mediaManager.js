@@ -17,6 +17,8 @@ export const BUNDLED_SAMPLES = [
   { id: 'sample-rooftop', name: 'Rooftop Dusk', url: './samples/rooftop-dusk.jpg' },
   { id: 'sample-coupe', name: 'Neon Twilight Coupe', url: './samples/neon-coupe.jpg' },
   { id: 'sample-pier', name: 'Turquoise Pier', url: './samples/pier.jpg' },
+  { id: 'sample-lookout', name: 'Marina Lookout', url: './samples/neon-lookout.jpg' },
+  { id: 'sample-boss', name: 'Biscayne Boss', url: './samples/miami-boss.jpg' },
 ];
 
 let nextPhotoSeq = 1;

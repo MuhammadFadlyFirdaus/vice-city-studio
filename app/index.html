@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' blob: data:; style-src 'self'; font-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'">
   <title>Vice City Studio — GTA-Style Multi-Panel Cover Art Maker</title>
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg">
   <link rel="stylesheet" href="./styles/tokens.css">
   <link rel="stylesheet" href="./styles/fonts.css">
   <link rel="stylesheet" href="./styles/studio.css">
@@ -122,6 +123,7 @@
                 <label class="field">
                   <span>Lettering Style</span>
                   <select id="select-title-style">
+                    <option value="outrun-striped" selected>Outrun Striped Chrome</option>
                     <option value="retro-chrome">Retro Chrome</option>
                     <option value="sunset-grad">Sunset Heat</option>
                     <option value="neon-pink">Electric Pink</option>
@@ -152,12 +154,12 @@
                 <input id="range-title-size" type="range" min="60" max="150" value="100">
               </label>
               <label class="slider-field">
-                <span class="slider-top"><span>Ink Outline</span><output id="val-title-outline">12</output></span>
-                <input id="range-title-outline" type="range" min="0" max="24" value="12">
+                <span class="slider-top"><span>Ink Outline</span><output id="val-title-outline">14</output></span>
+                <input id="range-title-outline" type="range" min="0" max="24" value="14">
               </label>
               <label class="slider-field">
-                <span class="slider-top"><span>3D Drop Shadow</span><output id="val-title-shadow">10</output></span>
-                <input id="range-title-shadow" type="range" min="0" max="24" value="10">
+                <span class="slider-top"><span>3D Drop Shadow</span><output id="val-title-shadow">12</output></span>
+                <input id="range-title-shadow" type="range" min="0" max="24" value="12">
               </label>
             </div>
 
@@ -189,8 +191,8 @@
                 <input id="range-subtitle-size" type="range" min="60" max="150" value="100">
               </label>
               <label class="slider-field">
-                <span class="slider-top"><span>Neon Glow</span><output id="val-subtitle-glow">75%</output></span>
-                <input id="range-subtitle-glow" type="range" min="0" max="100" value="75">
+                <span class="slider-top"><span>Neon Glow</span><output id="val-subtitle-glow">78%</output></span>
+                <input id="range-subtitle-glow" type="range" min="0" max="100" value="78">
               </label>
               <label class="field">
                 <span>Bottom Tagline</span>
@@ -203,16 +205,56 @@
                 <h2>Poster Badges</h2>
               </div>
               <label class="toggle-row">
-                <span>Panel Role Tags</span>
-                <input id="toggle-role-tags" type="checkbox">
+                <span>Panel Cast Tags</span>
+                <input id="toggle-role-tags" type="checkbox" checked>
               </label>
               <label class="toggle-row">
-                <span>Original Edition Seal</span>
+                <span>Gold-Foil Medallion</span>
                 <input id="toggle-edition-seal" type="checkbox" checked>
               </label>
               <label class="field">
-                <span>Edition Seal Label</span>
-                <input id="input-seal-text" type="text" maxlength="22" value="VICE EDITION • 26">
+                <span>Medallion Label</span>
+                <input id="input-seal-text" type="text" maxlength="28" value="ORIGINAL COVER ART • ★★★">
+              </label>
+            </div>
+
+            <div class="control-group">
+              <div class="section-head">
+                <h2>Collector's Box-Art Frame</h2>
+              </div>
+              <label class="toggle-row">
+                <span>Poster Frame (Master)</span>
+                <input id="toggle-collector-frame" type="checkbox" checked>
+              </label>
+              <label class="toggle-row">
+                <span>Top Critic Strip</span>
+                <input id="toggle-critic-strip" type="checkbox" checked>
+              </label>
+              <label class="field">
+                <span>Critic Review Quote</span>
+                <input id="input-critic-quote" type="text" maxlength="48" value="AN INSTANT COASTAL CLASSIC">
+              </label>
+              <div class="grid-2">
+                <label class="field">
+                  <span>Edition Badge</span>
+                  <input id="input-edition-vol" type="text" maxlength="14" value="VOL. 1">
+                </label>
+                <label class="field">
+                  <span>Release Stamp</span>
+                  <input id="input-coming-soon" type="text" maxlength="20" value="COMING SOON">
+                </label>
+              </div>
+              <label class="toggle-row">
+                <span>Bottom Cinema Billing</span>
+                <input id="toggle-billing-block" type="checkbox" checked>
+              </label>
+              <label class="field">
+                <span>Billing Credits</span>
+                <input id="input-billing-credits" type="text" maxlength="120" value="VICE CITY STUDIO PRESENTS • A NEON SHORE PRODUCTION • SHOT IN MIAMI • MUSIC BY SYNTHWAVE COLLECTIVE">
+              </label>
+              <label class="toggle-row">
+                <span>Panel Cream Hairline</span>
+                <input id="toggle-inner-hairline" type="checkbox" checked>
               </label>
             </div>
           </section>
@@ -225,20 +267,20 @@
               </div>
               <div id="grade-preset-grid" class="preset-grid"></div>
               <label class="slider-field">
-                <span class="slider-top"><span>Painterly / Poster Ink</span><output id="val-painterly">58%</output></span>
-                <input id="range-painterly" type="range" min="0" max="100" value="58">
+                <span class="slider-top"><span>Painterly / Poster Ink</span><output id="val-painterly">62%</output></span>
+                <input id="range-painterly" type="range" min="0" max="100" value="62">
               </label>
               <label class="slider-field">
-                <span class="slider-top"><span>Brightness</span><output id="val-brightness">102%</output></span>
-                <input id="range-brightness" type="range" min="70" max="135" value="102">
+                <span class="slider-top"><span>Brightness</span><output id="val-brightness">101%</output></span>
+                <input id="range-brightness" type="range" min="70" max="135" value="101">
               </label>
               <label class="slider-field">
-                <span class="slider-top"><span>Contrast</span><output id="val-contrast">114%</output></span>
-                <input id="range-contrast" type="range" min="75" max="150" value="114">
+                <span class="slider-top"><span>Contrast</span><output id="val-contrast">120%</output></span>
+                <input id="range-contrast" type="range" min="75" max="150" value="120">
               </label>
               <label class="slider-field">
-                <span class="slider-top"><span>Saturation</span><output id="val-saturation">118%</output></span>
-                <input id="range-saturation" type="range" min="50" max="165" value="118">
+                <span class="slider-top"><span>Saturation</span><output id="val-saturation">122%</output></span>
+                <input id="range-saturation" type="range" min="50" max="165" value="122">
               </label>
             </div>
 
@@ -247,20 +289,20 @@
                 <h2>Atmospheric Overlays</h2>
               </div>
               <label class="slider-field">
-                <span class="slider-top"><span>Sunset Sky Wash</span><output id="val-sunset-overlay">42%</output></span>
-                <input id="range-sunset-overlay" type="range" min="0" max="100" value="42">
+                <span class="slider-top"><span>Sunset Sky Wash</span><output id="val-sunset-overlay">34%</output></span>
+                <input id="range-sunset-overlay" type="range" min="0" max="100" value="34">
               </label>
               <label class="slider-field">
-                <span class="slider-top"><span>Dual Neon Rim</span><output id="val-neon-rim">48%</output></span>
-                <input id="range-neon-rim" type="range" min="0" max="100" value="48">
+                <span class="slider-top"><span>Dual Neon Rim</span><output id="val-neon-rim">46%</output></span>
+                <input id="range-neon-rim" type="range" min="0" max="100" value="46">
               </label>
               <label class="slider-field">
-                <span class="slider-top"><span>Film Grain</span><output id="val-grain">22%</output></span>
-                <input id="range-grain" type="range" min="0" max="100" value="22">
+                <span class="slider-top"><span>Film Grain</span><output id="val-grain">18%</output></span>
+                <input id="range-grain" type="range" min="0" max="100" value="18">
               </label>
               <label class="slider-field">
-                <span class="slider-top"><span>Vignette</span><output id="val-vignette">36%</output></span>
-                <input id="range-vignette" type="range" min="0" max="100" value="36">
+                <span class="slider-top"><span>Vignette</span><output id="val-vignette">34%</output></span>
+                <input id="range-vignette" type="range" min="0" max="100" value="34">
               </label>
               <label class="toggle-row">
                 <span>Palm Silhouettes</span>
@@ -281,7 +323,7 @@
           <canvas id="poster-canvas" width="1920" height="1080" aria-label="Vice City cover art canvas"></canvas>
         </div>
         <div id="canvas-hint" class="stage-bar">
-          <span id="stage-dims">1920 × 1080 px • Classic Vice City</span>
+          <span id="stage-dims">1920 × 1080 px • Crime Epic 6-Panel</span>
           <span class="stage-tips">Click panel to select • Drag to pan • Wheel to zoom • Drop photo onto panel</span>
         </div>
         <div id="studio-toast" class="toast" role="status" aria-live="polite"></div>
@@ -329,7 +371,7 @@
             </div>
             <label class="field">
               <span>Panel Role Label</span>
-              <input id="input-panel-role" type="text" maxlength="18" value="HERO">
+              <input id="input-panel-role" type="text" maxlength="18" value="THE DRIVER">
             </label>
           </div>
 

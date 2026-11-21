@@ -1,4 +1,4 @@
-// Left sidebar UI bindings: Templates, Local Photos & Tray, Text controls, and Effects controls.
+// Left sidebar UI bindings: Templates, Local Photos & Tray, Text & Collector Frame controls, and Effects controls.
 
 import { POSTER_TEMPLATES, getTemplateById, buildSmartAutoFillPanels } from '../templates.js';
 import { importPhotoFiles } from '../mediaManager.js';
@@ -17,7 +17,7 @@ function createTemplateMiniSvg(tpl) {
   svg.setAttribute('viewBox', '0 0 56 36');
   svg.setAttribute('width', '56');
   svg.setAttribute('height', '36');
-  const colors = ['#ff3d9a', '#35e8ff', '#ff8c42', '#ffd166', '#b86bff'];
+  const colors = ['#ff3d9a', '#35e8ff', '#ff8c42', '#ffd166', '#b86bff', '#4ef2b8'];
   const panels = tpl.layouts?.landscape || [];
   panels.forEach((p, idx) => {
     const poly = document.createElementNS(ns, 'polygon');
@@ -26,9 +26,9 @@ function createTemplateMiniSvg(tpl) {
       .join(' ');
     poly.setAttribute('points', pts);
     poly.setAttribute('fill', colors[idx % colors.length]);
-    poly.setAttribute('fill-opacity', p.isHero ? '0.88' : '0.46');
+    poly.setAttribute('fill-opacity', p.isHero ? '0.90' : '0.50');
     poly.setAttribute('stroke', '#0b0713');
-    poly.setAttribute('stroke-width', '1.4');
+    poly.setAttribute('stroke-width', '1.3');
     svg.appendChild(poly);
   });
   return svg;
@@ -69,6 +69,16 @@ export function initLeftSidebar(store, { onToast }) {
   const toggleRoleTags = document.getElementById('toggle-role-tags');
   const toggleEditionSeal = document.getElementById('toggle-edition-seal');
   const inputSealText = document.getElementById('input-seal-text');
+
+  // Collector's Box-Art Frame controls
+  const toggleCollectorFrame = document.getElementById('toggle-collector-frame');
+  const toggleCriticStrip = document.getElementById('toggle-critic-strip');
+  const inputCriticQuote = document.getElementById('input-critic-quote');
+  const inputEditionVol = document.getElementById('input-edition-vol');
+  const toggleBillingBlock = document.getElementById('toggle-billing-block');
+  const inputComingSoon = document.getElementById('input-coming-soon');
+  const inputBillingCredits = document.getElementById('input-billing-credits');
+  const toggleInnerHairline = document.getElementById('toggle-inner-hairline');
 
   // Effects controls
   const rangePainterly = document.getElementById('range-painterly');
@@ -242,6 +252,15 @@ export function initLeftSidebar(store, { onToast }) {
     }
   }
 
+  function bindFrameTextInput(el, key) {
+    el?.addEventListener('input', () => {
+      store.updateFrame({ [key]: el.value }, { recordHistory: false });
+    });
+    el?.addEventListener('change', () => {
+      store.updateFrame({ [key]: el.value }, { recordHistory: true });
+    });
+  }
+
   function bindRange(el, updater) {
     el?.addEventListener('input', () => updater(Number(el.value), false));
     el?.addEventListener('change', () => updater(Number(el.value), true));
@@ -267,6 +286,16 @@ export function initLeftSidebar(store, { onToast }) {
   toggleRoleTags?.addEventListener('change', () => store.updateTypography({ showRoleTags: toggleRoleTags.checked }));
   toggleEditionSeal?.addEventListener('change', () => store.updateTypography({ showEditionSeal: toggleEditionSeal.checked }));
   bindTextInput(inputSealText, 'sealText', true);
+
+  // 5b. Collector's Box-Art Frame Wiring
+  toggleCollectorFrame?.addEventListener('change', () => store.updateFrame({ showCollectorFrame: toggleCollectorFrame.checked }));
+  toggleCriticStrip?.addEventListener('change', () => store.updateFrame({ showCriticStrip: toggleCriticStrip.checked }));
+  bindFrameTextInput(inputCriticQuote, 'criticQuote');
+  bindFrameTextInput(inputEditionVol, 'editionVol');
+  toggleBillingBlock?.addEventListener('change', () => store.updateFrame({ showBillingBlock: toggleBillingBlock.checked }));
+  bindFrameTextInput(inputComingSoon, 'comingSoonText');
+  bindFrameTextInput(inputBillingCredits, 'billingCredits');
+  toggleInnerHairline?.addEventListener('change', () => store.updateFrame({ showInnerHairline: toggleInnerHairline.checked }));
 
   // 6. Effects Controls Wiring
   bindRange(rangePainterly, (v, rec) => store.updateEffects({ painterly: v }, { recordHistory: rec }));
@@ -385,6 +414,39 @@ export function initLeftSidebar(store, { onToast }) {
     if (toggleRoleTags) toggleRoleTags.checked = Boolean(t.showRoleTags);
     if (toggleEditionSeal) toggleEditionSeal.checked = Boolean(t.showEditionSeal);
     if (inputSealText && document.activeElement !== inputSealText) inputSealText.value = t.sealText;
+
+    // Collector's Box-Art Frame sync
+    const f = state.frame || {};
+    const frameOn = Boolean(f.showCollectorFrame);
+    if (toggleCollectorFrame) toggleCollectorFrame.checked = frameOn;
+    if (toggleCriticStrip) {
+      toggleCriticStrip.checked = Boolean(f.showCriticStrip);
+      toggleCriticStrip.disabled = !frameOn;
+    }
+    if (inputCriticQuote) {
+      if (document.activeElement !== inputCriticQuote) inputCriticQuote.value = f.criticQuote || '';
+      inputCriticQuote.disabled = !frameOn || !f.showCriticStrip;
+    }
+    if (inputEditionVol) {
+      if (document.activeElement !== inputEditionVol) inputEditionVol.value = f.editionVol || '';
+      inputEditionVol.disabled = !frameOn || !f.showCriticStrip;
+    }
+    if (toggleBillingBlock) {
+      toggleBillingBlock.checked = Boolean(f.showBillingBlock);
+      toggleBillingBlock.disabled = !frameOn;
+    }
+    if (inputComingSoon) {
+      if (document.activeElement !== inputComingSoon) inputComingSoon.value = f.comingSoonText || '';
+      inputComingSoon.disabled = !frameOn || !f.showBillingBlock;
+    }
+    if (inputBillingCredits) {
+      if (document.activeElement !== inputBillingCredits) inputBillingCredits.value = f.billingCredits || '';
+      inputBillingCredits.disabled = !frameOn || !f.showBillingBlock;
+    }
+    if (toggleInnerHairline) {
+      toggleInnerHairline.checked = Boolean(f.showInnerHairline);
+      toggleInnerHairline.disabled = !frameOn;
+    }
 
     // Effects sync
     const fx = state.effects;
