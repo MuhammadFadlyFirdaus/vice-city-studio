@@ -1,12 +1,15 @@
-// Central state store for Vice City Studio: pub/sub updates, 3 required export
-// formats, upper-third face-safe panel crop defaults, Collector's Poster Frame state,
-// and 15-step Undo/Redo.
+// Central state store for Vice City Studio (V3 Rank #1):
+// Pub/sub updates, 3 required export formats, 7-panel Cast Mosaic default schema,
+// 6 cinematic color grades (default: sunset-gold), 100% original fictional default
+// poster copy (NEON EMPIRE / Coastal Nights / SOLARIS PICTURES — zero Vice City /
+// Rockstar text in poster artwork), and 15-step Undo/Redo.
 
 export const EXPORT_FORMATS = Object.freeze({
   landscape: Object.freeze({
     id: 'landscape',
     label: '1920×1080',
     ratioLabel: 'Landscape 16:9',
+    shortLabel: '16:9',
     width: 1920,
     height: 1080,
   }),
@@ -14,6 +17,7 @@ export const EXPORT_FORMATS = Object.freeze({
     id: 'portrait',
     label: '1080×1350',
     ratioLabel: 'Portrait 4:5',
+    shortLabel: '4:5',
     width: 1080,
     height: 1350,
   }),
@@ -21,6 +25,7 @@ export const EXPORT_FORMATS = Object.freeze({
     id: 'square',
     label: '1080×1080',
     ratioLabel: 'Square 1:1',
+    shortLabel: '1:1',
     width: 1080,
     height: 1080,
   }),
@@ -29,12 +34,13 @@ export const EXPORT_FORMATS = Object.freeze({
 export const UNDO_LIMIT = 15;
 
 export const DEFAULT_PANEL_ROLES = [
-  'THE DRIVER',
-  'THE FIXER',
-  'THE GETAWAY',
-  'THE CAPTAIN',
-  'THE LOOKOUT',
   'THE BOSS',
+  'THE DRIVER',
+  'THE RIDER',
+  'THE MECHANIC',
+  'THE CAPTAIN',
+  'THE FIXER',
+  'THE LOOKOUT',
 ];
 
 export function createDefaultPanelState(index = 0, photoId = null) {
@@ -51,7 +57,7 @@ export function createDefaultPanelState(index = 0, photoId = null) {
 export function createDefaultDesignState() {
   return {
     formatId: 'landscape',
-    templateId: 'crime-epic',
+    templateId: 'cast-mosaic',
     selectedPanelIndex: 0,
     activeTab: 'templates',
     panels: [
@@ -61,9 +67,10 @@ export function createDefaultDesignState() {
       createDefaultPanelState(3, null),
       createDefaultPanelState(4, null),
       createDefaultPanelState(5, null),
+      createDefaultPanelState(6, null),
     ],
     typography: {
-      mainTitle: 'NEON SHORE',
+      mainTitle: 'NEON EMPIRE',
       titleFont: 'Anton',
       titleStyle: 'outrun-striped',
       titlePos: 'bottom',
@@ -71,38 +78,40 @@ export function createDefaultDesignState() {
       titleSize: 100,
       titleOutline: 14,
       titleShadow: 12,
-      subtitle: 'Vice Nights',
+      subtitle: 'Coastal Nights',
       subtitleFont: 'Pacifico',
       subtitleColor: '#ff4fd8',
       subtitleSize: 100,
       subtitleGlow: 78,
-      tagline: 'SUNSET BOULEVARD • COASTAL EDITION',
+      tagline: 'SEVEN PLAYERS • ONE COAST • NO WAY OUT',
       showRoleTags: true,
       showEditionSeal: true,
-      sealText: 'ORIGINAL COVER ART • ★★★',
+      sealText: 'ORIGINAL ART',
+      sealRingText: 'SOLARIS COVER STUDIO ★ OFFICIAL EDITION ★',
     },
     frame: {
       showCollectorFrame: true,
       showCriticStrip: true,
-      criticQuote: 'AN INSTANT COASTAL CLASSIC',
+      criticQuote: 'THE SUN-DRENCHED CRIME EPIC OF THE YEAR',
+      criticSource: 'COASTAL CHRONICLE',
       editionVol: 'VOL. 1',
       showBillingBlock: true,
       comingSoonText: 'COMING SOON',
-      billingCredits: 'VICE CITY STUDIO PRESENTS • A NEON SHORE PRODUCTION • SHOT IN MIAMI • MUSIC BY SYNTHWAVE COLLECTIVE',
+      billingCredits: 'a SOLARIS PICTURES production in association with PALM & CHROME a M. VALDEZ film NEON EMPIRE music by THE NIGHTWAVE ORCHESTRA edited by K. SATO directed by M. VALDEZ',
       showInnerHairline: true,
     },
     effects: {
-      gradePreset: 'vice-sunset',
-      painterly: 62,
-      brightness: 101,
-      contrast: 120,
-      saturation: 122,
-      sunsetOverlay: 34,
-      neonRim: 46,
-      grain: 18,
-      vignette: 34,
+      gradePreset: 'sunset-gold',
+      painterly: 45,
+      brightness: 102,
+      contrast: 118,
+      saturation: 118,
+      sunsetOverlay: 28,
+      neonRim: 42,
+      grain: 14,
+      vignette: 32,
       showPalms: true,
-      showHorizonDisc: false,
+      showHorizonDisc: true,
     },
   };
 }
@@ -173,7 +182,7 @@ export function createStudioStore() {
       }, { recordHistory: true, reason: 'format' });
     },
 
-    setTemplate(templateId, panelCount = 6) {
+    setTemplate(templateId, panelCount = 7) {
       if (state.templateId === templateId) return;
       this.mutate((draft) => {
         draft.templateId = templateId;
@@ -199,6 +208,38 @@ export function createStudioStore() {
       this.mutate((draft) => {
         Object.assign(draft.panels[index], patch);
       }, { recordHistory, reason: 'panel' });
+    },
+
+    swapPanels(idxA, idxB, { recordHistory = true } = {}) {
+      if (idxA === idxB) return;
+      if (idxA < 0 || idxB < 0 || idxA >= state.panels.length || idxB >= state.panels.length) return;
+      this.mutate((draft) => {
+        const a = draft.panels[idxA];
+        const b = draft.panels[idxB];
+        const tmp = {
+          photoId: a.photoId,
+          zoom: a.zoom,
+          panX: a.panX,
+          panY: a.panY,
+          flipX: a.flipX,
+          role: a.role,
+        };
+        a.photoId = b.photoId;
+        a.zoom = b.zoom;
+        a.panX = b.panX;
+        a.panY = b.panY;
+        a.flipX = b.flipX;
+        a.role = b.role;
+
+        b.photoId = tmp.photoId;
+        b.zoom = tmp.zoom;
+        b.panX = tmp.panX;
+        b.panY = tmp.panY;
+        b.flipX = tmp.flipX;
+        b.role = tmp.role;
+
+        draft.selectedPanelIndex = idxB;
+      }, { recordHistory, reason: 'swap' });
     },
 
     resetPanelCrop(index) {

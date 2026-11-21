@@ -1,16 +1,19 @@
-// Poster layout geometry engine and Smart Upper-Third Face-Safe Auto-Fill.
-// Supports 4 flagship multi-panel layouts across 16:9, 4:5, and 1:1 aspect ratios,
-// with Collector's Box-Art Frame top/bottom inset awareness.
+// Poster layout geometry engine (V3 Rank #1 — 6 Adaptive Multi-Panel Layouts):
+// Supports Cast Mosaic (7-panel full-height center hero), Skyline Split (4-panel +
+// synthwave skyline horizon stage), Six Grid (6-panel + dedicated center horizon band),
+// Classic 5, Diagonal 4, and Crime Epic 6 across 16:9, 4:5, and 1:1 formats.
+// Also exports panel swap utilities and preview badge positioning / hit-testing.
 
 import { DEFAULT_PANEL_ROLES } from './state.js';
 
 export const ONE_PHOTO_VARIATIONS = Object.freeze([
-  Object.freeze({ zoom: 1.05, panX: 0, panY: -0.22, flipX: false }),
-  Object.freeze({ zoom: 1.46, panX: -0.14, panY: -0.26, flipX: false }),
-  Object.freeze({ zoom: 1.34, panX: 0.14, panY: -0.18, flipX: true }),
-  Object.freeze({ zoom: 1.18, panX: -0.1, panY: -0.12, flipX: false }),
+  Object.freeze({ zoom: 1.04, panX: 0, panY: -0.22, flipX: false }),
+  Object.freeze({ zoom: 1.38, panX: -0.14, panY: -0.26, flipX: false }),
+  Object.freeze({ zoom: 1.24, panX: 0.14, panY: -0.20, flipX: true }),
+  Object.freeze({ zoom: 1.15, panX: -0.08, panY: -0.16, flipX: false }),
   Object.freeze({ zoom: 1.42, panX: 0.12, panY: -0.24, flipX: true }),
-  Object.freeze({ zoom: 1.28, panX: -0.06, panY: -0.28, flipX: false }),
+  Object.freeze({ zoom: 1.28, panX: -0.06, panY: -0.26, flipX: false }),
+  Object.freeze({ zoom: 1.12, panX: 0.08, panY: -0.18, flipX: true }),
 ]);
 
 /**
@@ -71,12 +74,35 @@ function insetPolygon(points, insetPx) {
   return out;
 }
 
+function polygonSpanAtY(points, y) {
+  let minX = Infinity;
+  let maxX = -Infinity;
+  const n = points.length;
+  for (let i = 0; i < n; i++) {
+    const [x1, y1] = points[i];
+    const [x2, y2] = points[(i + 1) % n];
+    if ((y1 <= y && y2 >= y) || (y2 <= y && y1 >= y)) {
+      if (Math.abs(y2 - y1) < 1e-5) {
+        minX = Math.min(minX, x1, x2);
+        maxX = Math.max(maxX, x1, x2);
+      } else {
+        const t = (y - y1) / (y2 - y1);
+        const ix = x1 + t * (x2 - x1);
+        minX = Math.min(minX, ix);
+        maxX = Math.max(maxX, ix);
+      }
+    }
+  }
+  if (!Number.isFinite(minX) || !Number.isFinite(maxX)) return null;
+  return { minX, maxX };
+}
+
 function buildPanelGeometry(
   rawNormPanels,
   width,
   height,
-  frameRatio = 0.018,
-  gutterRatio = 0.014,
+  frameRatio = 0.017,
+  gutterRatio = 0.013,
   insets = {},
 ) {
   const minDim = Math.min(width, height);
@@ -121,65 +147,106 @@ function buildPanelGeometry(
   });
 }
 
-// Flagship Template #1: Crime Epic 6-Panel
-// Dominant symmetrical-chevron center hero flanked by 5 dynamic slanted cast & action panels.
-const CRIME_EPIC_LAYOUTS = {
+// ============================================================================
+// 1. CAST MOSAIC — 7 Panels (FLAGSHIP DEFAULT for 16:9 Landscape)
+// Full-height commanding center hero flanked by 2 stacked left & 4 right cast panels.
+// ============================================================================
+const CAST_MOSAIC_LAYOUTS = {
   landscape: [
-    // Panel 0: Dominant Center Hero (THE DRIVER — commanding symmetric inward V-slant)
-    { id: 'hero', isHero: true, accent: '#ff3d9a', poly: [[0.33, 0], [0.67, 0], [0.65, 0.67], [0.35, 0.67]] },
-    // Panel 1: Far-Left Symmetrical Cast (THE FIXER)
-    { id: 'top-left-a', accent: '#35e8ff', poly: [[0, 0], [0.17, 0], [0.185, 0.67], [0, 0.67]] },
-    // Panel 2: Full-Width Bottom Action Banner (THE GETAWAY — neon coupe title anchor)
-    { id: 'bot-wide', accent: '#ff8c42', poly: [[0, 0.67], [1, 0.67], [1, 1], [0, 1]] },
-    // Panel 3: Inner-Right Symmetrical Cast (THE CAPTAIN)
-    { id: 'top-right-a', accent: '#ffd166', poly: [[0.67, 0], [0.83, 0], [0.815, 0.67], [0.65, 0.67]] },
-    // Panel 4: Inner-Left Symmetrical Cast (THE LOOKOUT)
-    { id: 'top-left-b', accent: '#b86bff', poly: [[0.17, 0], [0.33, 0], [0.35, 0.67], [0.185, 0.67]] },
-    // Panel 5: Far-Right Symmetrical Cast (THE BOSS)
-    { id: 'top-right-b', accent: '#ff4fd8', poly: [[0.83, 0], [1, 0], [1, 0.67], [0.815, 0.67]] },
+    // Panel 0: Full-height Center Hero (THE BOSS)
+    { id: 'hero', isHero: true, accent: '#ff3d9a', poly: [[0.235, 0], [0.605, 0], [0.580, 1], [0.210, 1]] },
+    // Panel 1: Top-Left (THE DRIVER)
+    { id: 'top-left', accent: '#35e8ff', poly: [[0, 0], [0.235, 0], [0.223, 0.525], [0, 0.525]] },
+    // Panel 2: Bottom-Left (THE RIDER)
+    { id: 'bot-left', accent: '#ff8c42', poly: [[0, 0.525], [0.223, 0.525], [0.210, 1], [0, 1]] },
+    // Panel 3: Top-Mid-Right (THE MECHANIC)
+    { id: 'top-mid-r', accent: '#ffd166', poly: [[0.605, 0], [0.805, 0], [0.793, 0.50], [0.593, 0.50]] },
+    // Panel 4: Top-Far-Right (THE CAPTAIN)
+    { id: 'top-far-r', accent: '#ff5e7e', poly: [[0.805, 0], [1, 0], [1, 0.50], [0.793, 0.50]] },
+    // Panel 5: Bottom-Mid-Right (THE FIXER)
+    { id: 'bot-mid-r', accent: '#b86bff', poly: [[0.593, 0.50], [0.793, 0.50], [0.780, 1], [0.580, 1]] },
+    // Panel 6: Bottom-Far-Right (THE LOOKOUT)
+    { id: 'bot-far-r', accent: '#ff4fd8', poly: [[0.793, 0.50], [1, 0.50], [1, 1], [0.780, 1]] },
   ],
   portrait: [
-    // Panel 0: Dominant Center Hero (THE DRIVER)
-    { id: 'hero', isHero: true, accent: '#ff3d9a', poly: [[0.255, 0.285], [0.745, 0.265], [0.725, 0.725], [0.235, 0.745]] },
-    // Panel 1: Top-Left Cast (THE FIXER)
-    { id: 'top-left', accent: '#35e8ff', poly: [[0, 0], [0.515, 0], [0.495, 0.275], [0, 0.295]] },
-    // Panel 2: Bottom Full-Width Action Banner (THE GETAWAY)
-    { id: 'bot-wide', accent: '#ff8c42', poly: [[0, 0.755], [1, 0.715], [1, 1], [0, 1]] },
-    // Panel 3: Top-Right Cast (THE CAPTAIN)
-    { id: 'top-right', accent: '#ffd166', poly: [[0.515, 0], [1, 0], [1, 0.255], [0.495, 0.275]] },
-    // Panel 4: Mid-Left Vertical Cast (THE LOOKOUT)
-    { id: 'mid-left', accent: '#b86bff', poly: [[0, 0.295], [0.255, 0.285], [0.235, 0.745], [0, 0.755]] },
-    // Panel 5: Mid-Right Vertical Cast (THE BOSS)
-    { id: 'mid-right', accent: '#ff4fd8', poly: [[0.745, 0.265], [1, 0.255], [1, 0.715], [0.725, 0.725]] },
+    // Center tall hero + 2 top flank + 2 mid flank + 2 bottom panels
+    { id: 'hero', isHero: true, accent: '#ff3d9a', poly: [[0.265, 0.247], [0.745, 0.233], [0.725, 0.723], [0.245, 0.738]] },
+    { id: 'top-left', accent: '#35e8ff', poly: [[0, 0], [0.510, 0], [0.495, 0.240], [0, 0.255]] },
+    { id: 'mid-left', accent: '#ff8c42', poly: [[0, 0.255], [0.265, 0.247], [0.245, 0.738], [0, 0.745]] },
+    { id: 'top-right', accent: '#ffd166', poly: [[0.510, 0], [1, 0], [1, 0.225], [0.495, 0.240]] },
+    { id: 'mid-right', accent: '#ff5e7e', poly: [[0.745, 0.233], [1, 0.225], [1, 0.715], [0.725, 0.723]] },
+    { id: 'bot-left', accent: '#b86bff', poly: [[0, 0.745], [0.505, 0.730], [0.490, 1], [0, 1]] },
+    { id: 'bot-right', accent: '#ff4fd8', poly: [[0.505, 0.730], [1, 0.715], [1, 1], [0.490, 1]] },
   ],
   square: [
-    // Panel 0: Dominant Center Hero (THE DRIVER)
-    { id: 'hero', isHero: true, accent: '#ff3d9a', poly: [[0.30, 0], [0.70, 0], [0.68, 0.685], [0.28, 0.705]] },
-    // Panel 1: Top-Left Cast (THE FIXER)
-    { id: 'top-left', accent: '#35e8ff', poly: [[0, 0], [0.30, 0], [0.29, 0.36], [0, 0.38]] },
-    // Panel 2: Bottom Wide Action Strip (THE GETAWAY)
-    { id: 'bot-wide', accent: '#ff8c42', poly: [[0, 0.72], [1, 0.67], [1, 1], [0, 1]] },
-    // Panel 3: Top-Right Cast (THE CAPTAIN)
-    { id: 'top-right', accent: '#ffd166', poly: [[0.70, 0], [1, 0], [1, 0.345], [0.69, 0.365]] },
-    // Panel 4: Mid-Left Cast (THE LOOKOUT)
-    { id: 'mid-left', accent: '#b86bff', poly: [[0, 0.38], [0.29, 0.36], [0.28, 0.705], [0, 0.72]] },
-    // Panel 5: Mid-Right Cast (THE BOSS)
-    { id: 'mid-right', accent: '#ff4fd8', poly: [[0.69, 0.365], [1, 0.345], [1, 0.67], [0.68, 0.685]] },
+    // Tall top-center hero + 2 left + 2 right + 2 bottom panels
+    { id: 'hero', isHero: true, accent: '#ff3d9a', poly: [[0.280, 0], [0.730, 0], [0.710, 0.686], [0.260, 0.695]] },
+    { id: 'top-left', accent: '#35e8ff', poly: [[0, 0], [0.280, 0], [0.270, 0.350], [0, 0.360]] },
+    { id: 'mid-left', accent: '#ff8c42', poly: [[0, 0.360], [0.270, 0.350], [0.260, 0.695], [0, 0.700]] },
+    { id: 'top-right', accent: '#ffd166', poly: [[0.730, 0], [1, 0], [1, 0.330], [0.720, 0.340]] },
+    { id: 'mid-right', accent: '#ff5e7e', poly: [[0.720, 0.340], [1, 0.330], [1, 0.680], [0.710, 0.686]] },
+    { id: 'bot-left', accent: '#b86bff', poly: [[0, 0.700], [0.505, 0.690], [0.490, 1], [0, 1]] },
+    { id: 'bot-right', accent: '#ff4fd8', poly: [[0.505, 0.690], [1, 0.680], [1, 1], [0.490, 1]] },
   ],
 };
 
-// Template #2: Classic Vice City (5-panel asymmetric GTA-style cover)
+// ============================================================================
+// 2. SKYLINE SPLIT — 4 Panels + Full-Bleed Synthwave Skyline & Palm Horizon Stage
+// (FLAGSHIP for 4:5 Portrait / 03-cover-portrait.jpg)
+// ============================================================================
+const SKYLINE_SPLIT_STRIPS = [
+  // Panel 0: Center-Left Dominant Portrait Hero
+  { id: 'hero', isHero: true, accent: '#35e8ff', poly: [[0.265, 0], [0.530, 0], [0.500, 0.56], [0.235, 0.56]] },
+  // Panel 1: Far-Left Slanted Strip
+  { id: 'strip-left', accent: '#ff3d9a', poly: [[0, 0], [0.265, 0], [0.235, 0.56], [0, 0.56]] },
+  // Panel 2: Mid-Right Slanted Strip
+  { id: 'strip-mid-r', accent: '#ffd166', poly: [[0.530, 0], [0.775, 0], [0.745, 0.56], [0.500, 0.56]] },
+  // Panel 3: Far-Right Slanted Strip
+  { id: 'strip-far-r', accent: '#b86bff', poly: [[0.775, 0], [1, 0], [1, 0.56], [0.745, 0.56]] },
+];
+
+const SKYLINE_SPLIT_LAYOUTS = {
+  landscape: SKYLINE_SPLIT_STRIPS,
+  portrait: SKYLINE_SPLIT_STRIPS,
+  square: SKYLINE_SPLIT_STRIPS,
+};
+
+// ============================================================================
+// 3. SIX GRID — 6 Panels + Dedicated Center Horizon Title Band
+// (FLAGSHIP for 1:1 Square / 04-cover-square.jpg)
+// ============================================================================
+function buildSixGridRows(topEnd, botStart) {
+  return [
+    // Panel 0: Top-Center Hero Portrait
+    { id: 'hero', isHero: true, accent: '#28ded4', poly: [[0.335, 0], [0.675, 0], [0.660, topEnd], [0.320, topEnd]] },
+    // Panel 1: Top-Left Cast
+    { id: 'top-left', accent: '#ffd166', poly: [[0, 0], [0.335, 0], [0.320, topEnd], [0, topEnd]] },
+    // Panel 2: Top-Right Cast
+    { id: 'top-right', accent: '#ff5e7e', poly: [[0.675, 0], [1, 0], [1, topEnd], [0.660, topEnd]] },
+    // Panel 3: Bottom-Left Cast
+    { id: 'bot-left', accent: '#ff8c42', poly: [[0, botStart], [0.330, botStart], [0.315, 1], [0, 1]] },
+    // Panel 4: Bottom-Center Cast
+    { id: 'bot-center', accent: '#b86bff', poly: [[0.330, botStart], [0.668, botStart], [0.653, 1], [0.315, 1]] },
+    // Panel 5: Bottom-Right Cast
+    { id: 'bot-right', accent: '#35e8ff', poly: [[0.668, botStart], [1, botStart], [1, 1], [0.653, 1]] },
+  ];
+}
+
+const SIX_GRID_LAYOUTS = {
+  landscape: buildSixGridRows(0.38, 0.625),
+  portrait: buildSixGridRows(0.38, 0.625),
+  square: buildSixGridRows(0.38, 0.625),
+};
+
+// ============================================================================
+// 4. CLASSIC 5 — 5-Panel Asymmetric Poster
+// ============================================================================
 const CLASSIC_VICE_LAYOUTS = {
   landscape: [
-    // Panel 0: Dominant Center Hero
     { id: 'hero', isHero: true, accent: '#ff3d9a', poly: [[0.305, 0], [0.705, 0], [0.68, 1], [0.28, 1]] },
-    // Panel 1: Top-Left Action / Skyline
     { id: 'top-left', accent: '#35e8ff', poly: [[0, 0], [0.305, 0], [0.293, 0.49], [0, 0.52]] },
-    // Panel 2: Bottom-Left Night Cruiser
     { id: 'bot-left', accent: '#ff8c42', poly: [[0, 0.52], [0.293, 0.49], [0.28, 1], [0, 1]] },
-    // Panel 3: Top-Right Coast / Pier
     { id: 'top-right', accent: '#ffd166', poly: [[0.705, 0], [1, 0], [1, 0.47], [0.693, 0.50]] },
-    // Panel 4: Bottom-Right Lookout
     { id: 'bot-right', accent: '#ff4fd8', poly: [[0.693, 0.50], [1, 0.47], [1, 1], [0.68, 1]] },
   ],
   portrait: [
@@ -198,7 +265,9 @@ const CLASSIC_VICE_LAYOUTS = {
   ],
 };
 
-// Template #3: Sunset Boulevard (4-panel dynamic diagonal slash poster)
+// ============================================================================
+// 5. DIAGONAL 4 — 4-Panel Diagonal Slash Poster
+// ============================================================================
 const SUNSET_BLVD_LAYOUTS = {
   landscape: [
     { id: 'hero', isHero: true, accent: '#ff3d9a', poly: [[0.23, 0], [0.64, 0], [0.54, 1], [0.13, 1]] },
@@ -220,69 +289,108 @@ const SUNSET_BLVD_LAYOUTS = {
   ],
 };
 
-// Template #4: Neon Night (4-panel high-contrast vertical split poster)
-const NEON_NIGHT_LAYOUTS = {
+// ============================================================================
+// 6. CRIME EPIC 6 — 6-Panel Classic Hero + Wide Action Strip
+// ============================================================================
+const CRIME_EPIC_LAYOUTS = {
   landscape: [
-    { id: 'hero', isHero: true, accent: '#ff3d9a', poly: [[0.22, 0], [0.57, 0], [0.57, 1], [0.22, 1]] },
-    { id: 'col-left', accent: '#35e8ff', poly: [[0, 0], [0.22, 0], [0.22, 1], [0, 1]] },
-    { id: 'col-mid', accent: '#ff8c42', poly: [[0.57, 0], [0.79, 0], [0.79, 1], [0.57, 1]] },
-    { id: 'col-right', accent: '#ffd166', poly: [[0.79, 0], [1, 0], [1, 1], [0.79, 1]] },
+    { id: 'hero', isHero: true, accent: '#ff3d9a', poly: [[0.33, 0], [0.67, 0], [0.65, 0.67], [0.35, 0.67]] },
+    { id: 'top-left-a', accent: '#35e8ff', poly: [[0, 0], [0.17, 0], [0.185, 0.67], [0, 0.67]] },
+    { id: 'bot-wide', accent: '#ff8c42', poly: [[0, 0.67], [1, 0.67], [1, 1], [0, 1]] },
+    { id: 'top-right-a', accent: '#ffd166', poly: [[0.67, 0], [0.83, 0], [0.815, 0.67], [0.65, 0.67]] },
+    { id: 'top-left-b', accent: '#b86bff', poly: [[0.17, 0], [0.33, 0], [0.35, 0.67], [0.185, 0.67]] },
+    { id: 'top-right-b', accent: '#ff4fd8', poly: [[0.83, 0], [1, 0], [1, 0.67], [0.815, 0.67]] },
   ],
   portrait: [
-    { id: 'hero', isHero: true, accent: '#ff3d9a', poly: [[0.27, 0], [0.73, 0], [0.73, 0.68], [0.27, 0.68]] },
-    { id: 'col-left', accent: '#35e8ff', poly: [[0, 0], [0.27, 0], [0.27, 0.68], [0, 0.68]] },
-    { id: 'bot-bar', accent: '#ff8c42', poly: [[0, 0.68], [1, 0.68], [1, 1], [0, 1]] },
-    { id: 'col-right', accent: '#ffd166', poly: [[0.73, 0], [1, 0], [1, 0.68], [0.73, 0.68]] },
+    { id: 'hero', isHero: true, accent: '#ff3d9a', poly: [[0.255, 0.285], [0.745, 0.265], [0.725, 0.725], [0.235, 0.745]] },
+    { id: 'top-left', accent: '#35e8ff', poly: [[0, 0], [0.515, 0], [0.495, 0.275], [0, 0.295]] },
+    { id: 'bot-wide', accent: '#ff8c42', poly: [[0, 0.755], [1, 0.715], [1, 1], [0, 1]] },
+    { id: 'top-right', accent: '#ffd166', poly: [[0.515, 0], [1, 0], [1, 0.255], [0.495, 0.275]] },
+    { id: 'mid-left', accent: '#b86bff', poly: [[0, 0.295], [0.255, 0.285], [0.235, 0.745], [0, 0.755]] },
+    { id: 'mid-right', accent: '#ff4fd8', poly: [[0.745, 0.265], [1, 0.255], [1, 0.715], [0.725, 0.725]] },
   ],
   square: [
-    { id: 'hero', isHero: true, accent: '#ff3d9a', poly: [[0, 0], [0.44, 0], [0.44, 0.67], [0, 0.67]] },
-    { id: 'col-mid', accent: '#35e8ff', poly: [[0.44, 0], [0.72, 0], [0.72, 0.67], [0.44, 0.67]] },
-    { id: 'bot-bar', accent: '#ff8c42', poly: [[0, 0.67], [1, 0.67], [1, 1], [0, 1]] },
-    { id: 'col-right', accent: '#ffd166', poly: [[0.72, 0], [1, 0], [1, 0.67], [0.72, 0.67]] },
+    { id: 'hero', isHero: true, accent: '#ff3d9a', poly: [[0.30, 0], [0.70, 0], [0.68, 0.685], [0.28, 0.705]] },
+    { id: 'top-left', accent: '#35e8ff', poly: [[0, 0], [0.30, 0], [0.29, 0.36], [0, 0.38]] },
+    { id: 'bot-wide', accent: '#ff8c42', poly: [[0, 0.72], [1, 0.67], [1, 1], [0, 1]] },
+    { id: 'top-right', accent: '#ffd166', poly: [[0.70, 0], [1, 0], [1, 0.345], [0.69, 0.365]] },
+    { id: 'mid-left', accent: '#b86bff', poly: [[0, 0.38], [0.29, 0.36], [0.28, 0.705], [0, 0.72]] },
+    { id: 'mid-right', accent: '#ff4fd8', poly: [[0.69, 0.365], [1, 0.345], [1, 0.67], [0.68, 0.685]] },
   ],
 };
 
 export const POSTER_TEMPLATES = [
   {
-    id: 'crime-epic',
-    name: 'Crime Epic 6-Panel',
-    subtitle: '6-Panel Flagship Key Art',
+    id: 'cast-mosaic',
+    name: 'Cast Mosaic',
+    subtitle: '7-Panel Center Hero Key Art',
+    panelCount: 7,
+    stageMode: 'full-bleed',
+    frameRatio: 0.016,
+    gutterRatio: 0.013,
+    layouts: CAST_MOSAIC_LAYOUTS,
+  },
+  {
+    id: 'skyline-split',
+    name: 'Skyline Split',
+    subtitle: '4-Panel + Miami Horizon Stage',
+    panelCount: 4,
+    stageMode: 'skyline-split',
+    skylineStartY: { landscape: 0.56, portrait: 0.56, square: 0.56 },
+    frameRatio: 0.016,
+    gutterRatio: 0.013,
+    layouts: SKYLINE_SPLIT_LAYOUTS,
+  },
+  {
+    id: 'six-grid',
+    name: 'Six Grid',
+    subtitle: '6-Panel + Center Horizon Band',
     panelCount: 6,
-    frameRatio: 0.017,
-    gutterRatio: 0.014,
-    layouts: CRIME_EPIC_LAYOUTS,
+    stageMode: 'center-band',
+    bandSpan: { landscape: [0.38, 0.625], portrait: [0.38, 0.625], square: [0.38, 0.625] },
+    frameRatio: 0.016,
+    gutterRatio: 0.013,
+    layouts: SIX_GRID_LAYOUTS,
   },
   {
     id: 'classic-vice',
-    name: 'Classic Vice City',
+    name: 'Classic 5',
     subtitle: '5-Panel Asymmetric Poster',
     panelCount: 5,
-    frameRatio: 0.018,
+    stageMode: 'full-bleed',
+    frameRatio: 0.017,
     gutterRatio: 0.014,
     layouts: CLASSIC_VICE_LAYOUTS,
   },
   {
     id: 'sunset-blvd',
-    name: 'Sunset Boulevard',
+    name: 'Diagonal 4',
     subtitle: '4-Panel Diagonal Slash',
     panelCount: 4,
-    frameRatio: 0.018,
-    gutterRatio: 0.015,
+    stageMode: 'full-bleed',
+    frameRatio: 0.017,
+    gutterRatio: 0.014,
     layouts: SUNSET_BLVD_LAYOUTS,
   },
   {
-    id: 'neon-night',
-    name: 'Neon Night',
-    subtitle: '4-Panel Vertical Split',
-    panelCount: 4,
-    frameRatio: 0.018,
-    gutterRatio: 0.015,
-    layouts: NEON_NIGHT_LAYOUTS,
+    id: 'crime-epic',
+    name: 'Crime Epic 6',
+    subtitle: '6-Panel Hero + Wide Strip',
+    panelCount: 6,
+    stageMode: 'full-bleed',
+    frameRatio: 0.017,
+    gutterRatio: 0.014,
+    layouts: CRIME_EPIC_LAYOUTS,
   },
 ];
 
+const TEMPLATE_ALIASES = Object.freeze({
+  'neon-night': 'skyline-split',
+});
+
 export function getTemplateById(templateId) {
-  return POSTER_TEMPLATES.find((t) => t.id === templateId) || POSTER_TEMPLATES[0];
+  const mappedId = TEMPLATE_ALIASES[templateId] || templateId;
+  return POSTER_TEMPLATES.find((t) => t.id === mappedId) || POSTER_TEMPLATES[0];
 }
 
 export function resolveTemplatePanels(templateId, formatId, width, height, insets = {}) {
@@ -313,9 +421,81 @@ export function hitTestPanel(panelGeometries, x, y) {
 }
 
 /**
- * Smart Upper-Third Face-Safe Auto-Fill:
- * - 1 photo: fills every panel with curated non-repetitive upper-third crops.
- * - Multiple photos: distributes all photos cleanly across panels with face-safe defaults.
+ * Returns a new panels array with photoId, zoom, panX, panY, flipX, and role
+ * cleanly swapped between `idxA` and `idxB`.
+ */
+export function swapPanelContents(panels, idxA, idxB) {
+  if (!Array.isArray(panels)) return [];
+  const next = panels.map((p) => ({ ...p }));
+  if (idxA === idxB || idxA < 0 || idxB < 0 || idxA >= next.length || idxB >= next.length) {
+    return next;
+  }
+  const a = next[idxA];
+  const b = next[idxB];
+  const tmp = {
+    photoId: a.photoId,
+    zoom: a.zoom,
+    panX: a.panX,
+    panY: a.panY,
+    flipX: a.flipX,
+    role: a.role,
+  };
+  a.photoId = b.photoId;
+  a.zoom = b.zoom;
+  a.panX = b.panX;
+  a.panY = b.panY;
+  a.flipX = b.flipX;
+  a.role = b.role;
+
+  b.photoId = tmp.photoId;
+  b.zoom = tmp.zoom;
+  b.panX = tmp.panX;
+  b.panY = tmp.panY;
+  b.flipX = tmp.flipX;
+  b.role = tmp.role;
+
+  return next;
+}
+
+/**
+ * Returns `{ x, y, r }` for the preview-only numbered panel badge (1..N)
+ * tucked cleanly inside the top-left inner corner of each slanted panel.
+ */
+export function getPanelBadgePosition(geom, minDim) {
+  const r = Math.max(13, Math.round(minDim * 0.0175));
+  const pad = Math.max(8, Math.round(r * 0.65));
+  const y = Math.min(
+    geom.bounds.y + geom.bounds.h - r - 4,
+    geom.bounds.y + pad + r,
+  );
+  const span = polygonSpanAtY(geom.points, y);
+  const leftEdge = span ? span.minX : geom.bounds.x;
+  const rightEdge = span ? span.maxX : geom.bounds.x + geom.bounds.w;
+  const x = Math.max(
+    leftEdge + r + 4,
+    Math.min(rightEdge - r - 4, leftEdge + pad + r),
+  );
+  return { x: Math.round(x), y: Math.round(y), r };
+}
+
+/**
+ * Hit-tests the preview-only numbered panel badges (1..N) for drag-to-swap.
+ */
+export function hitTestPanelBadge(geometries, x, y, minDim) {
+  if (!geometries || geometries.length === 0) return -1;
+  for (let i = 0; i < geometries.length; i++) {
+    const pos = getPanelBadgePosition(geometries[i], minDim);
+    const hitRadius = pos.r * 1.4;
+    if (Math.hypot(x - pos.x, y - pos.y) <= hitRadius) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+/**
+ * Fallback upper-third auto-fill (retained for backward compatibility alongside
+ * buildFaceAwareAutoFill in faceCrop.js).
  */
 export function buildSmartAutoFillPanels(photoIds, panelCount, existingPanels = []) {
   const ids = (photoIds || []).filter(Boolean);

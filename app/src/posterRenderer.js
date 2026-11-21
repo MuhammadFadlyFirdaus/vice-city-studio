@@ -1,13 +1,24 @@
-// Core 2D Canvas compositor for Vice City Studio (V2 Collector's Box-Art Edition).
-// Supports both interactive preview mode (with subtle panel selection outline)
-// and clean lossless export mode (zero selection gizmos, full resolution).
+// Core 2D Canvas compositor for Vice City Studio (V3 Rank #1):
+// - Integrates Synthwave Skyline Horizon Stage (`skyline-split` & `center-band`),
+//   Hero Panel subtle striped sun halo & dark lower vignette (`cast-mosaic`),
+//   Collector's Box-Art Frame, and Zero-Collision Outrun Typography.
+// - Preview-only numbered circular panel badges (1..N) + glowing cyan active panel
+//   highlight (100% stripped in export mode or hideGizmos: true).
+// - Exports `renderLiveSizePreviews` for the live 3-size thumbnail strip.
 
-import { resolveTemplatePanels } from './templates.js';
+import { EXPORT_FORMATS } from './state.js';
+import {
+  getPanelBadgePosition,
+  getTemplateById,
+  resolveTemplatePanels,
+} from './templates.js';
 import { drawCoverTypography } from './typography.js';
 import { processPhotoWithEffects } from './imageEffects.js';
 import {
   drawAtmosphericOverlays,
   drawCollectorPosterFrame,
+  drawHeroSunHalo,
+  drawSkylineHorizonStage,
   getCollectorFrameMetrics,
 } from './overlays.js';
 
@@ -52,7 +63,7 @@ export function computePanelPhotoRect(bounds, srcW, srcH, panelState) {
   const slackX = Math.max(0, drawW - bounds.w);
   const slackY = Math.max(0, drawH - bounds.h);
 
-  // Negative panY shifts image downward so upper-third (heads/sky) stays cleanly framed
+  // Negative panY shifts image downward so upper-third (heads/hats) stays cleanly framed
   const drawX = bounds.x + (bounds.w - drawW) * 0.5 - panX * (slackX * 0.5);
   const drawY = bounds.y + (bounds.h - drawH) * 0.5 - panY * (slackY * 0.5);
 
@@ -92,7 +103,62 @@ function drawPanelImage(ctx, geom, panelState, photoRecord, effects, options) {
 }
 
 /**
- * Renders the complete GTA-style multi-panel cover onto `canvas`.
+ * Draws preview-only interactive numbered panel badges (1..N) and glowing active panel
+ * selection outline. NEVER rendered in export mode or when `hideGizmos: true`.
+ */
+function drawPreviewGizmos(ctx, panelGeometries, selectedPanelIndex, minDim) {
+  // 1. Active panel glowing cyan border
+  const selGeom = panelGeometries[selectedPanelIndex];
+  if (selGeom) {
+    ctx.save();
+    tracePolygon(ctx, selGeom.points);
+    ctx.strokeStyle = '#35e8ff';
+    ctx.lineWidth = Math.max(4, Math.round(minDim * 0.0046));
+    ctx.setLineDash([Math.round(minDim * 0.016), Math.round(minDim * 0.010)]);
+    ctx.shadowColor = 'rgba(53, 232, 255, 0.90)';
+    ctx.shadowBlur = Math.round(minDim * 0.016);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // 2. Numbered circular panel badges (1..N) at top-left inner corner of each panel
+  for (let i = 0; i < panelGeometries.length; i++) {
+    const geom = panelGeometries[i];
+    const isSelected = i === selectedPanelIndex;
+    const { x, y, r } = getPanelBadgePosition(geom, minDim);
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+
+    if (isSelected) {
+      ctx.fillStyle = '#0d2638';
+      ctx.shadowColor = 'rgba(53, 232, 255, 0.85)';
+      ctx.shadowBlur = Math.round(r * 0.75);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = '#4af0ff';
+      ctx.lineWidth = Math.max(2.2, r * 0.16);
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = 'rgba(10, 6, 22, 0.82)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255, 244, 222, 0.65)';
+      ctx.lineWidth = Math.max(1.5, r * 0.11);
+      ctx.stroke();
+    }
+
+    ctx.fillStyle = isSelected ? '#e8feff' : '#fff8ec';
+    ctx.font = `600 ${Math.max(12, Math.round(r * 1.15))}px "Oswald", sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(String(i + 1), x, y + 1);
+    ctx.restore();
+  }
+}
+
+/**
+ * Renders the complete multi-panel poster cover onto `canvas`.
  * Returns the resolved panel geometries for interactive hit-testing.
  */
 export function renderPoster(canvas, store, options = {}) {
@@ -110,10 +176,11 @@ export function renderPoster(canvas, store, options = {}) {
 
   const ctx = canvas.getContext('2d', { alpha: false });
   const minDim = Math.min(width, height);
+  const template = getTemplateById(state.templateId);
   const frameState = state.frame || {};
   const frameMetrics = getCollectorFrameMetrics(width, height, frameState);
   const panelGeometries = resolveTemplatePanels(
-    state.templateId,
+    template.id,
     format.id,
     width,
     height,
@@ -132,10 +199,12 @@ export function renderPoster(canvas, store, options = {}) {
   // 2. Render each clipped photo panel + crisp comic ink gutter + cream hairline inner border
   const inkStroke = Math.max(4, Math.round(minDim * 0.0055));
   const showHairline = Boolean(frameState.showCollectorFrame && frameState.showInnerHairline);
-  const hairlineW = Math.max(1.8, minDim * 0.0022);
+  const hairlineW = Math.max(1.6, minDim * 0.0020);
+  let heroGeom = null;
 
   for (let i = 0; i < panelGeometries.length; i++) {
     const geom = panelGeometries[i];
+    if (geom.isHero) heroGeom = geom;
     const panelState = state.panels[i] || { photoId: null, zoom: 1, panX: 0, panY: -0.18, flipX: false };
     const photoRecord = store.getPhoto(panelState.photoId);
 
@@ -143,7 +212,7 @@ export function renderPoster(canvas, store, options = {}) {
     tracePolygon(ctx, geom.points);
     ctx.clip();
 
-    // Base fill beneath transparent PNGs so transparency looks intentional and vibrant
+    // Base vibrant gradient beneath transparent PNGs
     const baseGrad = ctx.createLinearGradient(geom.bounds.x, geom.bounds.y, geom.bounds.x, geom.bounds.y + geom.bounds.h);
     baseGrad.addColorStop(0, '#2a1242');
     baseGrad.addColorStop(0.55, '#ff4d8d');
@@ -163,7 +232,7 @@ export function renderPoster(canvas, store, options = {}) {
     ctx.stroke();
     ctx.restore();
 
-    // Sharp cream/white hairline border inside the black ink gutter around every panel
+    // Sharp cream/white hairline border inside the black ink gutter
     if (showHairline) {
       ctx.save();
       tracePolygon(ctx, geom.points);
@@ -175,11 +244,18 @@ export function renderPoster(canvas, store, options = {}) {
     }
   }
 
-  // 3. Atmospheric overlays (clipped to panel stage so collector strips stay crisp)
-  const overlaysFn = options.drawOverlays || drawAtmosphericOverlays;
-  overlaysFn(ctx, width, height, state.effects, panelGeometries, frameMetrics);
+  // 3. Dedicated Skyline Horizon Stage (`skyline-split` / `center-band`) OR Hero Sun Halo (`cast-mosaic`)
+  if (template.stageMode === 'skyline-split' || template.stageMode === 'center-band') {
+    drawSkylineHorizonStage(ctx, width, height, template, format.id, state.effects, frameMetrics);
+  } else if (heroGeom) {
+    drawHeroSunHalo(ctx, width, height, heroGeom, state.effects, frameMetrics);
+  }
 
-  // 4. Outer crisp comic frame border around entire poster
+  // 4. Atmospheric overlays (clipped to panel stage so collector strips stay crisp)
+  const overlaysFn = options.drawOverlays || drawAtmosphericOverlays;
+  overlaysFn(ctx, width, height, state.effects, panelGeometries, frameMetrics, template);
+
+  // 5. Outer crisp comic frame border around entire poster
   ctx.save();
   const outerFrame = Math.max(6, Math.round(minDim * 0.008));
   ctx.strokeStyle = '#050209';
@@ -187,8 +263,8 @@ export function renderPoster(canvas, store, options = {}) {
   ctx.strokeRect(0, 0, width, height);
   ctx.restore();
 
-  // 5. Collector's Box-Art / Movie Poster Frame (Top Critic Strip + Bottom Billing Block)
-  drawCollectorPosterFrame(ctx, width, height, frameState, frameMetrics);
+  // 6. Collector's Box-Art / Movie Poster Frame (Top Critic Strip + Bottom Billing Block)
+  drawCollectorPosterFrame(ctx, width, height, frameState, frameMetrics, state.effects);
 
   // Subtle cream outer collector hairline inset around the whole poster
   if (frameMetrics.enabled) {
@@ -199,25 +275,70 @@ export function renderPoster(canvas, store, options = {}) {
     ctx.restore();
   }
 
-  // 6. Layered Outrun Striped Chrome & Neon Typography + Slanted Role Tags + Gold-Foil Medallion
-  drawCoverTypography(ctx, width, height, state.typography, panelGeometries, state.panels, frameMetrics);
+  // 7. Grade-Adaptive Outrun Striped Chrome Typography + Zero-Collision Tags + Metallic Foil Seal
+  drawCoverTypography(
+    ctx,
+    width,
+    height,
+    state.typography,
+    panelGeometries,
+    state.panels,
+    frameMetrics,
+    state.effects,
+    template,
+  );
 
-  // 7. Interactive selection gizmo (PREVIEW ONLY — never drawn in export or cover screenshots)
+  // 8. Interactive preview gizmos (PREVIEW ONLY — 100% stripped in export / cover shots)
   if (!hideGizmos) {
-    const selIdx = state.selectedPanelIndex;
-    const selGeom = panelGeometries[selIdx];
-    if (selGeom) {
-      ctx.save();
-      tracePolygon(ctx, selGeom.points);
-      ctx.strokeStyle = '#35e8ff';
-      ctx.lineWidth = Math.max(4, Math.round(minDim * 0.0045));
-      ctx.setLineDash([Math.round(minDim * 0.016), Math.round(minDim * 0.01)]);
-      ctx.shadowColor = 'rgba(53, 232, 255, 0.85)';
-      ctx.shadowBlur = Math.round(minDim * 0.014);
-      ctx.stroke();
-      ctx.restore();
-    }
+    drawPreviewGizmos(ctx, panelGeometries, state.selectedPanelIndex, minDim);
   }
 
   return panelGeometries;
+}
+
+/**
+ * Renders live miniature previews for all 3 export formats (`square`, `portrait`, `landscape`)
+ * cleanly (zero selection gizmos, scaled smoothly from the active design state).
+ * `canvasMap` accepts `{ square?: HTMLCanvasElement, portrait?: HTMLCanvasElement, landscape?: HTMLCanvasElement }`.
+ */
+export function renderLiveSizePreviews(canvasMap, store, options = {}) {
+  if (!canvasMap || !store) return;
+
+  const targetHeight = options.targetHeight || 220;
+  const formatIds = ['square', 'portrait', 'landscape'];
+  const offscreen = document.createElement('canvas');
+
+  for (const fmtId of formatIds) {
+    const thumbCanvas = canvasMap[fmtId];
+    if (!thumbCanvas) continue;
+    const fmt = EXPORT_FORMATS[fmtId];
+    if (!fmt) continue;
+
+    // Render at proportional poster scale (minDim = 800) so seals, stars, and ink strokes
+    // stay 100% proportional, then downsample smoothly onto the miniature preview canvas.
+    const renderScale = 800 / Math.min(fmt.width, fmt.height);
+    const renderW = Math.round(fmt.width * renderScale);
+    const renderH = Math.round(fmt.height * renderScale);
+
+    renderPoster(offscreen, store, {
+      mode: 'preview',
+      hideGizmos: true,
+      format: fmt,
+      width: renderW,
+      height: renderH,
+    });
+
+    const thumbScale = targetHeight / fmt.height;
+    const thumbW = Math.max(60, Math.round(fmt.width * thumbScale));
+    const thumbH = Math.max(60, Math.round(fmt.height * thumbScale));
+    if (thumbCanvas.width !== thumbW || thumbCanvas.height !== thumbH) {
+      thumbCanvas.width = thumbW;
+      thumbCanvas.height = thumbH;
+    }
+
+    const tctx = thumbCanvas.getContext('2d', { alpha: false });
+    tctx.imageSmoothingEnabled = true;
+    tctx.imageSmoothingQuality = 'high';
+    tctx.drawImage(offscreen, 0, 0, thumbW, thumbH);
+  }
 }

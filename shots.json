@@ -1,25 +1,25 @@
 [
   {
     "name": "01-cover-landscape.jpg",
-    "query": "?shot=cover&format=landscape&template=crime-epic&title=NEON%20SHORE&subtitle=Vice%20Nights&tagline=SUNSET%20BOULEVARD%20%E2%80%A2%20COASTAL%20EDITION&grade=vice-sunset&style=outrun-striped",
+    "query": "?shot=cover&format=landscape&template=cast-mosaic&grade=sunset-gold&style=outrun-striped",
     "w": 1280,
     "h": 720
   },
   {
     "name": "02-editor-studio.jpg",
-    "query": "?shot=editor&format=landscape&template=crime-epic&tab=templates",
+    "query": "?shot=editor&format=landscape&template=cast-mosaic&grade=sunset-gold&selected=3",
     "w": 1280,
     "h": 760
   },
   {
     "name": "03-cover-portrait.jpg",
-    "query": "?shot=cover&format=portrait&template=sunset-blvd&title=MIAMI%20HEAT&subtitle=Sunset%20Drive&tagline=DIAGONAL%20SUNSET%20%E2%80%A2%201080%C3%971350&grade=miami-heat&style=outrun-striped&critic=A%20SUN-DRENCHED%20NEON%20THRILLER&vol=VOL.%202&billing=VICE%20CITY%20STUDIO%20PRESENTS%20%E2%80%A2%20MIAMI%20HEAT%20%E2%80%A2%20DIAGONAL%20CUT%20%E2%80%A2%20MUSIC%20BY%20SUNSET%20DRIVE",
+    "query": "?shot=cover&format=portrait&template=skyline-split&grade=neon-midnight&style=outrun-striped&title=MIDNIGHT%20RUN&subtitle=Palm%20Avenue&tagline=NEON%20STREETS%20%E2%80%A2%20NO%20TURNING%20BACK&critic=PURE%20MIDNIGHT%20ADRENALINE&source=PALM%20TRIBUNE&vol=VOL.%202",
     "w": 1024,
     "h": 1280
   },
   {
     "name": "04-cover-square.jpg",
-    "query": "?shot=cover&format=square&template=neon-night&title=NIGHT%20SHIFT&subtitle=Ocean%20Drive&tagline=MIDNIGHT%20BOULEVARD%20%E2%80%A2%201080%C3%971080&grade=neon-midnight&style=retro-chrome&critic=PURE%2080S%20MIDNIGHT%20ENERGY&vol=VOL.%203&billing=VICE%20CITY%20STUDIO%20PRESENTS%20%E2%80%A2%20NIGHT%20SHIFT%20%E2%80%A2%20OCEAN%20DRIVE%20%E2%80%A2%20SYNTHWAVE%20EDITION",
+    "query": "?shot=cover&format=square&template=six-grid&grade=tropic-teal&style=outrun-striped&title=CORAL%20HEAT&subtitle=Sunset%20Strip&tagline=SIX%20LIVES%20%E2%80%A2%20ONE%20EMPIRE%20%E2%80%A2%20ALL%20IN&critic=ELECTRIC%20COASTAL%20SPECTACLE&source=SUNSET%20WEEKLY&vol=VOL.%203",
     "w": 1080,
     "h": 1080
   }

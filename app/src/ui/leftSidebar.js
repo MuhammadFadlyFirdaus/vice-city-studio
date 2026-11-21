@@ -1,86 +1,46 @@
-// Left sidebar UI bindings: Templates, Local Photos & Tray, Text & Collector Frame controls, and Effects controls.
+// Left Rail UI bindings (V3 Zero-Tab Pro Studio):
+// ① ADD PHOTOS (+ CHOOSE PHOTOS, 8-Cast Demo, Auto-Fill, 4x2 numbered thumbnails 1..8),
+// LAYOUT (3x2 mini SVG wireframe cards for 6 adaptive layouts),
+// COLOUR GRADE (3x2 LIVE miniature graded canvas swatches + Poster Ink + Fine-Tune Effects).
 
-import { POSTER_TEMPLATES, getTemplateById, buildSmartAutoFillPanels } from '../templates.js';
-import { importPhotoFiles } from '../mediaManager.js';
-
-export const COLOR_GRADE_OPTIONS = [
-  { id: 'vice-sunset', label: 'Vice Sunset', swatch: 'linear-gradient(135deg,#ff3d9a,#ff9f43)' },
-  { id: 'miami-heat', label: 'Miami Heat', swatch: 'linear-gradient(135deg,#ff5e3a,#ffd166)' },
-  { id: 'neon-midnight', label: 'Neon Midnight', swatch: 'linear-gradient(135deg,#ff2a9d,#2be7ff)' },
-  { id: 'golden-hour', label: 'Golden Hour', swatch: 'linear-gradient(135deg,#f6b93b,#e55039)' },
-  { id: 'ocean-drive', label: 'Ocean Drive', swatch: 'linear-gradient(135deg,#18dcff,#ff6b9d)' },
-];
+import { POSTER_TEMPLATES, getTemplateById } from '../templates.js';
+import { GRADE_PRESET_LIST, renderGradePreviewThumb, resolveGradePreset } from '../imageEffects.js';
+import { computeFaceAwarePanelCrop } from '../faceCrop.js';
+import { importPhotoFiles, loadSamplePhotos } from '../mediaManager.js';
 
 function createTemplateMiniSvg(tpl) {
   const ns = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(ns, 'svg');
-  svg.setAttribute('viewBox', '0 0 56 36');
-  svg.setAttribute('width', '56');
-  svg.setAttribute('height', '36');
-  const colors = ['#ff3d9a', '#35e8ff', '#ff8c42', '#ffd166', '#b86bff', '#4ef2b8'];
+  svg.setAttribute('viewBox', '0 0 46 28');
+  svg.setAttribute('width', '46');
+  svg.setAttribute('height', '28');
+  const colors = ['#ff3d9a', '#35e8ff', '#ff8c42', '#ffd166', '#b86bff', '#4ef2b8', '#ff5e7e'];
   const panels = tpl.layouts?.landscape || [];
   panels.forEach((p, idx) => {
     const poly = document.createElementNS(ns, 'polygon');
     const pts = p.poly
-      .map(([nx, ny]) => `${(2 + nx * 52).toFixed(1)},${(2 + ny * 32).toFixed(1)}`)
+      .map(([nx, ny]) => `${(1.5 + nx * 43).toFixed(1)},${(1.5 + ny * 25).toFixed(1)}`)
       .join(' ');
     poly.setAttribute('points', pts);
     poly.setAttribute('fill', colors[idx % colors.length]);
-    poly.setAttribute('fill-opacity', p.isHero ? '0.90' : '0.50');
-    poly.setAttribute('stroke', '#0b0713');
-    poly.setAttribute('stroke-width', '1.3');
+    poly.setAttribute('fill-opacity', p.isHero ? '0.92' : '0.48');
+    poly.setAttribute('stroke', '#090512');
+    poly.setAttribute('stroke-width', '1.1');
     svg.appendChild(poly);
   });
   return svg;
 }
 
-export function initLeftSidebar(store, { onToast }) {
-  const tabBar = document.getElementById('sidebar-tabs');
-  const templateList = document.getElementById('template-list');
+export function initLeftSidebar(store, { onAutoFill, onResetDemoCast, getGeometries, onToast }) {
   const dropzone = document.getElementById('photo-dropzone');
   const fileInput = document.getElementById('photo-file-input');
-  const btnUpload = document.getElementById('btn-upload-photos');
+  const btnDemoCast = document.getElementById('btn-demo-cast');
   const btnAutofill = document.getElementById('btn-autofill-panels');
   const photoTray = document.getElementById('photo-tray');
   const photoCount = document.getElementById('photo-count');
+  const templateList = document.getElementById('template-list');
   const gradeGrid = document.getElementById('grade-preset-grid');
 
-  // Text controls
-  const inputMainTitle = document.getElementById('input-main-title');
-  const selectTitleFont = document.getElementById('select-title-font');
-  const selectTitleStyle = document.getElementById('select-title-style');
-  const selectTitlePos = document.getElementById('select-title-pos');
-  const selectTitleAlign = document.getElementById('select-title-align');
-  const rangeTitleSize = document.getElementById('range-title-size');
-  const valTitleSize = document.getElementById('val-title-size');
-  const rangeTitleOutline = document.getElementById('range-title-outline');
-  const valTitleOutline = document.getElementById('val-title-outline');
-  const rangeTitleShadow = document.getElementById('range-title-shadow');
-  const valTitleShadow = document.getElementById('val-title-shadow');
-
-  const inputSubtitle = document.getElementById('input-subtitle');
-  const selectSubtitleFont = document.getElementById('select-subtitle-font');
-  const inputSubtitleColor = document.getElementById('input-subtitle-color');
-  const rangeSubtitleSize = document.getElementById('range-subtitle-size');
-  const valSubtitleSize = document.getElementById('val-subtitle-size');
-  const rangeSubtitleGlow = document.getElementById('range-subtitle-glow');
-  const valSubtitleGlow = document.getElementById('val-subtitle-glow');
-  const inputTagline = document.getElementById('input-tagline');
-  const toggleRoleTags = document.getElementById('toggle-role-tags');
-  const toggleEditionSeal = document.getElementById('toggle-edition-seal');
-  const inputSealText = document.getElementById('input-seal-text');
-
-  // Collector's Box-Art Frame controls
-  const toggleCollectorFrame = document.getElementById('toggle-collector-frame');
-  const toggleCriticStrip = document.getElementById('toggle-critic-strip');
-  const inputCriticQuote = document.getElementById('input-critic-quote');
-  const inputEditionVol = document.getElementById('input-edition-vol');
-  const toggleBillingBlock = document.getElementById('toggle-billing-block');
-  const inputComingSoon = document.getElementById('input-coming-soon');
-  const inputBillingCredits = document.getElementById('input-billing-credits');
-  const toggleInnerHairline = document.getElementById('toggle-inner-hairline');
-
-  // Effects controls
   const rangePainterly = document.getElementById('range-painterly');
   const valPainterly = document.getElementById('val-painterly');
   const rangeBrightness = document.getElementById('range-brightness');
@@ -97,75 +57,71 @@ export function initLeftSidebar(store, { onToast }) {
   const valGrain = document.getElementById('val-grain');
   const rangeVignette = document.getElementById('range-vignette');
   const valVignette = document.getElementById('val-vignette');
-  const togglePalms = document.getElementById('toggle-palms');
-  const toggleHorizonDisc = document.getElementById('toggle-horizon-disc');
 
-  // 1. Tabs
-  tabBar?.addEventListener('click', (e) => {
-    const btn = e.target.closest('button[data-tab]');
-    if (!btn) return;
-    store.setActiveTab(btn.dataset.tab);
-  });
-
-  // 2. Render Template Cards
+  // 1. Layout Cards (3x2 grid)
   function renderTemplateCards(activeId) {
     if (!templateList) return;
     templateList.textContent = '';
+    const resolvedId = getTemplateById(activeId).id;
     for (const tpl of POSTER_TEMPLATES) {
       const card = document.createElement('button');
       card.type = 'button';
-      card.className = `template-card${tpl.id === activeId ? ' is-active' : ''}`;
+      card.className = `layout-card${tpl.id === resolvedId ? ' is-active' : ''}`;
       card.dataset.templateId = tpl.id;
+      card.title = `${tpl.name} — ${tpl.subtitle}`;
 
       const mini = document.createElement('div');
-      mini.className = 'template-mini';
+      mini.className = 'layout-mini';
       mini.appendChild(createTemplateMiniSvg(tpl));
 
-      const meta = document.createElement('div');
-      meta.className = 'template-meta';
       const nameEl = document.createElement('span');
-      nameEl.className = 'template-name';
+      nameEl.className = 'layout-name';
       nameEl.textContent = tpl.name;
-      const descEl = document.createElement('span');
-      descEl.className = 'template-desc';
-      descEl.textContent = tpl.subtitle;
-      meta.append(nameEl, descEl);
 
-      card.append(mini, meta);
+      card.append(mini, nameEl);
       card.addEventListener('click', () => {
         store.setTemplate(tpl.id, tpl.panelCount);
-        onToast?.(`Switched layout to ${tpl.name}`);
+        onToast?.(`Layout: ${tpl.name} (${tpl.panelCount} panels)`);
       });
       templateList.appendChild(card);
     }
   }
 
-  // 3. Render Grade Preset Buttons
-  function renderGradePresets(activeGrade) {
+  // 2. Colour Grade Swatches (3x2 LIVE miniature graded canvases from Hero photo)
+  function renderGradePresets(activeGradeId, heroPhoto) {
     if (!gradeGrid) return;
     gradeGrid.textContent = '';
-    for (const preset of COLOR_GRADE_OPTIONS) {
+    const activeResolved = resolveGradePreset(activeGradeId).id;
+
+    for (const preset of GRADE_PRESET_LIST) {
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = `preset-btn${preset.id === activeGrade ? ' is-active' : ''}`;
+      btn.className = `grade-card${preset.id === activeResolved ? ' is-active' : ''}`;
       btn.dataset.gradeId = preset.id;
+      btn.title = preset.label;
 
-      const swatch = document.createElement('span');
-      swatch.className = 'preset-swatch';
-      swatch.style.background = preset.swatch;
+      const thumbCanvas = renderGradePreviewThumb(heroPhoto, preset.id, 72, 42);
+      const preview = document.createElement('canvas');
+      preview.className = 'grade-thumb-canvas';
+      preview.width = thumbCanvas.width;
+      preview.height = thumbCanvas.height;
+      const pctx = preview.getContext('2d');
+      pctx.drawImage(thumbCanvas, 0, 0);
 
       const label = document.createElement('span');
+      label.className = 'grade-label';
       label.textContent = preset.label;
 
-      btn.append(swatch, label);
+      btn.append(preview, label);
       btn.addEventListener('click', () => {
         store.updateEffects({ gradePreset: preset.id });
+        onToast?.(`Grade: ${preset.label}`);
       });
       gradeGrid.appendChild(btn);
     }
   }
 
-  // 4. Local Photo Upload & Auto-Fill
+  // 3. Local Photo Intake & Face-Aware Auto-Fill
   async function handleIncomingFiles(files) {
     if (!files || files.length === 0) return;
     const { imported, errors } = await importPhotoFiles(files, store);
@@ -173,27 +129,22 @@ export function initLeftSidebar(store, { onToast }) {
       onToast?.(errors[0], true);
     }
     if (imported.length > 0) {
-      const st = store.getState();
-      const tpl = getTemplateById(st.templateId);
       const userPhotos = store.listPhotos().filter((p) => !p.isSample);
-      const sourceIds = imported.length === 1 && userPhotos.length === 1
-        ? [imported[0].id]
-        : userPhotos.map((p) => p.id);
-      const filled = buildSmartAutoFillPanels(sourceIds, tpl.panelCount, st.panels);
-      store.mutate((draft) => {
-        for (let i = 0; i < filled.length; i++) {
-          draft.panels[i] = filled[i];
-        }
-      }, { recordHistory: true, reason: 'autofill' });
+      const pool = imported.length === 1 && userPhotos.length === 1
+        ? [imported[0]]
+        : userPhotos;
+      if (typeof onAutoFill === 'function') {
+        onAutoFill(pool, { silentToast: true });
+      }
+      const tpl = getTemplateById(store.getState().templateId);
       onToast?.(
         imported.length === 1
-          ? `Loaded "${imported[0].name}" across ${tpl.panelCount} panels`
-          : `Loaded ${imported.length} photos into cover panels`,
+          ? `Loaded "${imported[0].name}" across ${tpl.panelCount} panels (Face-Aware)`
+          : `Loaded ${imported.length} photos with Face-Aware Auto-Fill`,
       );
     }
   }
 
-  btnUpload?.addEventListener('click', () => fileInput?.click());
   dropzone?.addEventListener('click', () => fileInput?.click());
   dropzone?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -221,83 +172,28 @@ export function initLeftSidebar(store, { onToast }) {
     }
   });
 
-  btnAutofill?.addEventListener('click', () => {
-    const allPhotos = store.listPhotos();
-    if (allPhotos.length === 0) {
-      onToast?.('Upload at least one photo first.', true);
-      return;
+  btnDemoCast?.addEventListener('click', async () => {
+    await loadSamplePhotos(store);
+    if (typeof onResetDemoCast === 'function') {
+      onResetDemoCast();
+    } else if (typeof onAutoFill === 'function') {
+      onAutoFill(store.listPhotos());
     }
-    const userOnly = allPhotos.filter((p) => !p.isSample);
-    const pool = userOnly.length > 0 ? userOnly : allPhotos;
-    const st = store.getState();
-    const tpl = getTemplateById(st.templateId);
-    const filled = buildSmartAutoFillPanels(pool.map((p) => p.id), tpl.panelCount, st.panels);
-    store.mutate((draft) => {
-      for (let i = 0; i < filled.length; i++) {
-        draft.panels[i] = filled[i];
-      }
-    }, { recordHistory: true, reason: 'autofill' });
-    onToast?.('Smart Upper-Third Auto-Fill applied');
+    onToast?.('Loaded 8-Cast Demo portraits');
   });
 
-  // 5. Text Controls Wiring
-  function bindTextInput(el, key, recordOnChangeOnly = true) {
-    el?.addEventListener('input', () => {
-      store.updateTypography({ [key]: el.value }, { recordHistory: !recordOnChangeOnly });
-    });
-    if (recordOnChangeOnly) {
-      el?.addEventListener('change', () => {
-        store.updateTypography({ [key]: el.value }, { recordHistory: true });
-      });
+  btnAutofill?.addEventListener('click', () => {
+    if (typeof onAutoFill === 'function') {
+      onAutoFill();
     }
-  }
+  });
 
-  function bindFrameTextInput(el, key) {
-    el?.addEventListener('input', () => {
-      store.updateFrame({ [key]: el.value }, { recordHistory: false });
-    });
-    el?.addEventListener('change', () => {
-      store.updateFrame({ [key]: el.value }, { recordHistory: true });
-    });
-  }
-
+  // 4. Effects sliders wiring
   function bindRange(el, updater) {
     el?.addEventListener('input', () => updater(Number(el.value), false));
     el?.addEventListener('change', () => updater(Number(el.value), true));
   }
 
-  bindTextInput(inputMainTitle, 'mainTitle', true);
-  selectTitleFont?.addEventListener('change', () => store.updateTypography({ titleFont: selectTitleFont.value }));
-  selectTitleStyle?.addEventListener('change', () => store.updateTypography({ titleStyle: selectTitleStyle.value }));
-  selectTitlePos?.addEventListener('change', () => store.updateTypography({ titlePos: selectTitlePos.value }));
-  selectTitleAlign?.addEventListener('change', () => store.updateTypography({ titleAlign: selectTitleAlign.value }));
-  bindRange(rangeTitleSize, (v, rec) => store.updateTypography({ titleSize: v }, { recordHistory: rec }));
-  bindRange(rangeTitleOutline, (v, rec) => store.updateTypography({ titleOutline: v }, { recordHistory: rec }));
-  bindRange(rangeTitleShadow, (v, rec) => store.updateTypography({ titleShadow: v }, { recordHistory: rec }));
-
-  bindTextInput(inputSubtitle, 'subtitle', true);
-  selectSubtitleFont?.addEventListener('change', () => store.updateTypography({ subtitleFont: selectSubtitleFont.value }));
-  inputSubtitleColor?.addEventListener('input', () => store.updateTypography({ subtitleColor: inputSubtitleColor.value }, { recordHistory: false }));
-  inputSubtitleColor?.addEventListener('change', () => store.updateTypography({ subtitleColor: inputSubtitleColor.value }, { recordHistory: true }));
-  bindRange(rangeSubtitleSize, (v, rec) => store.updateTypography({ subtitleSize: v }, { recordHistory: rec }));
-  bindRange(rangeSubtitleGlow, (v, rec) => store.updateTypography({ subtitleGlow: v }, { recordHistory: rec }));
-
-  bindTextInput(inputTagline, 'tagline', true);
-  toggleRoleTags?.addEventListener('change', () => store.updateTypography({ showRoleTags: toggleRoleTags.checked }));
-  toggleEditionSeal?.addEventListener('change', () => store.updateTypography({ showEditionSeal: toggleEditionSeal.checked }));
-  bindTextInput(inputSealText, 'sealText', true);
-
-  // 5b. Collector's Box-Art Frame Wiring
-  toggleCollectorFrame?.addEventListener('change', () => store.updateFrame({ showCollectorFrame: toggleCollectorFrame.checked }));
-  toggleCriticStrip?.addEventListener('change', () => store.updateFrame({ showCriticStrip: toggleCriticStrip.checked }));
-  bindFrameTextInput(inputCriticQuote, 'criticQuote');
-  bindFrameTextInput(inputEditionVol, 'editionVol');
-  toggleBillingBlock?.addEventListener('change', () => store.updateFrame({ showBillingBlock: toggleBillingBlock.checked }));
-  bindFrameTextInput(inputComingSoon, 'comingSoonText');
-  bindFrameTextInput(inputBillingCredits, 'billingCredits');
-  toggleInnerHairline?.addEventListener('change', () => store.updateFrame({ showInnerHairline: toggleInnerHairline.checked }));
-
-  // 6. Effects Controls Wiring
   bindRange(rangePainterly, (v, rec) => store.updateEffects({ painterly: v }, { recordHistory: rec }));
   bindRange(rangeBrightness, (v, rec) => store.updateEffects({ brightness: v }, { recordHistory: rec }));
   bindRange(rangeContrast, (v, rec) => store.updateEffects({ contrast: v }, { recordHistory: rec }));
@@ -306,9 +202,8 @@ export function initLeftSidebar(store, { onToast }) {
   bindRange(rangeNeonRim, (v, rec) => store.updateEffects({ neonRim: v }, { recordHistory: rec }));
   bindRange(rangeGrain, (v, rec) => store.updateEffects({ grain: v }, { recordHistory: rec }));
   bindRange(rangeVignette, (v, rec) => store.updateEffects({ vignette: v }, { recordHistory: rec }));
-  togglePalms?.addEventListener('change', () => store.updateEffects({ showPalms: togglePalms.checked }));
-  toggleHorizonDisc?.addEventListener('change', () => store.updateEffects({ showHorizonDisc: toggleHorizonDisc.checked }));
 
+  // 5. 4x2 Compact Photo Thumbnail Grid (1..8 with HERO tag & delete button)
   function renderPhotoTray(state) {
     if (!photoTray) return;
     const list = store.listPhotos();
@@ -318,7 +213,7 @@ export function initLeftSidebar(store, { onToast }) {
     const activePanel = state.panels[state.selectedPanelIndex];
     photoTray.textContent = '';
 
-    for (const photo of list) {
+    list.forEach((photo, idx) => {
       const card = document.createElement('div');
       card.className = `photo-item${activePanel?.photoId === photo.id ? ' is-assigned' : ''}`;
 
@@ -330,125 +225,77 @@ export function initLeftSidebar(store, { onToast }) {
       img.src = photo.thumbUrl;
       img.alt = photo.name;
       thumbBtn.appendChild(img);
+
       thumbBtn.addEventListener('click', () => {
-        const idx = store.getState().selectedPanelIndex;
-        store.updatePanel(idx, { photoId: photo.id, zoom: 1.04, panX: 0, panY: -0.2, flipX: false });
-        onToast?.(`Assigned "${photo.name}" to Panel ${idx + 1}`);
+        const panelIdx = store.getState().selectedPanelIndex;
+        const geoms = typeof getGeometries === 'function' ? getGeometries() : [];
+        const geom = geoms[panelIdx];
+        const crop = geom
+          ? computeFaceAwarePanelCrop(photo, geom.bounds, 0, Math.max(1, store.listPhotos().length))
+          : { zoom: 1.04, panX: 0, panY: -0.22, flipX: false };
+        store.updatePanel(panelIdx, {
+          photoId: photo.id,
+          zoom: crop.zoom,
+          panX: crop.panX,
+          panY: crop.panY,
+          flipX: crop.flipX,
+        });
+        onToast?.(`Assigned "${photo.name}" to Panel ${panelIdx + 1}`);
       });
 
-      const bar = document.createElement('div');
-      bar.className = 'photo-item-bar';
-      const nameSpan = document.createElement('span');
-      nameSpan.className = 'photo-item-name';
-      nameSpan.textContent = photo.name;
+      const numBadge = document.createElement('span');
+      numBadge.className = `photo-num-badge${idx === 0 ? ' is-hero' : ''}`;
+      numBadge.textContent = idx === 0 ? '1 HERO' : String(idx + 1);
+
       const delBtn = document.createElement('button');
       delBtn.type = 'button';
       delBtn.className = 'photo-del-btn';
       delBtn.title = `Remove ${photo.name}`;
+      delBtn.setAttribute('aria-label', `Remove ${photo.name}`);
       delBtn.textContent = '×';
-      delBtn.addEventListener('click', () => {
+      delBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
         store.removePhoto(photo.id);
         onToast?.(`Removed "${photo.name}"`);
       });
-      bar.append(nameSpan, delBtn);
 
-      card.append(thumbBtn, bar);
+      card.append(thumbBtn, numBadge, delBtn);
       photoTray.appendChild(card);
-    }
+    });
   }
 
-  let lastTemplateCount = -1;
   let lastTemplateId = null;
-  let lastGradeId = null;
+  let lastGradeKey = null;
 
   function sync(state, reason) {
-    // Active tab sync
-    if (tabBar) {
-      for (const btn of tabBar.querySelectorAll('button[data-tab]')) {
-        const isActive = btn.dataset.tab === state.activeTab;
-        btn.classList.toggle('is-active', isActive);
-        btn.setAttribute('aria-selected', String(isActive));
-      }
-    }
-    for (const panel of document.querySelectorAll('#studio-sidebar .tab-panel')) {
-      panel.classList.toggle('is-active', panel.id === `tab-${state.activeTab}`);
+    const resolvedTplId = getTemplateById(state.templateId).id;
+    if (lastTemplateId !== resolvedTplId) {
+      renderTemplateCards(resolvedTplId);
+      lastTemplateId = resolvedTplId;
     }
 
-    if (lastTemplateId !== state.templateId || lastTemplateCount !== POSTER_TEMPLATES.length) {
-      renderTemplateCards(state.templateId);
-      lastTemplateId = state.templateId;
-      lastTemplateCount = POSTER_TEMPLATES.length;
+    const heroPhoto = store.getPhoto(state.panels[0]?.photoId) || store.listPhotos()[0] || null;
+    const resolvedGrade = resolveGradePreset(state.effects.gradePreset).id;
+    const gradeKey = `${resolvedGrade}|${heroPhoto?.id || 'none'}`;
+    if (lastGradeKey !== gradeKey) {
+      renderGradePresets(resolvedGrade, heroPhoto);
+      lastGradeKey = gradeKey;
     }
 
-    if (lastGradeId !== state.effects.gradePreset) {
-      renderGradePresets(state.effects.gradePreset);
-      lastGradeId = state.effects.gradePreset;
-    }
-
-    if (reason === 'init' || reason === 'photos' || reason === 'selection' || reason === 'panel' || reason === 'autofill' || reason === 'undo' || reason === 'redo' || reason === 'reset') {
+    if (
+      reason === 'init'
+      || reason === 'photos'
+      || reason === 'selection'
+      || reason === 'panel'
+      || reason === 'swap'
+      || reason === 'autofill'
+      || reason === 'undo'
+      || reason === 'redo'
+      || reason === 'reset'
+    ) {
       renderPhotoTray(state);
     }
 
-    // Typography sync
-    const t = state.typography;
-    if (inputMainTitle && document.activeElement !== inputMainTitle) inputMainTitle.value = t.mainTitle;
-    if (selectTitleFont) selectTitleFont.value = t.titleFont;
-    if (selectTitleStyle) selectTitleStyle.value = t.titleStyle;
-    if (selectTitlePos) selectTitlePos.value = t.titlePos;
-    if (selectTitleAlign) selectTitleAlign.value = t.titleAlign;
-    if (rangeTitleSize) rangeTitleSize.value = String(t.titleSize);
-    if (valTitleSize) valTitleSize.textContent = `${t.titleSize}%`;
-    if (rangeTitleOutline) rangeTitleOutline.value = String(t.titleOutline);
-    if (valTitleOutline) valTitleOutline.textContent = String(t.titleOutline);
-    if (rangeTitleShadow) rangeTitleShadow.value = String(t.titleShadow);
-    if (valTitleShadow) valTitleShadow.textContent = String(t.titleShadow);
-
-    if (inputSubtitle && document.activeElement !== inputSubtitle) inputSubtitle.value = t.subtitle;
-    if (selectSubtitleFont) selectSubtitleFont.value = t.subtitleFont;
-    if (inputSubtitleColor) inputSubtitleColor.value = t.subtitleColor;
-    if (rangeSubtitleSize) rangeSubtitleSize.value = String(t.subtitleSize);
-    if (valSubtitleSize) valSubtitleSize.textContent = `${t.subtitleSize}%`;
-    if (rangeSubtitleGlow) rangeSubtitleGlow.value = String(t.subtitleGlow);
-    if (valSubtitleGlow) valSubtitleGlow.textContent = `${t.subtitleGlow}%`;
-    if (inputTagline && document.activeElement !== inputTagline) inputTagline.value = t.tagline;
-    if (toggleRoleTags) toggleRoleTags.checked = Boolean(t.showRoleTags);
-    if (toggleEditionSeal) toggleEditionSeal.checked = Boolean(t.showEditionSeal);
-    if (inputSealText && document.activeElement !== inputSealText) inputSealText.value = t.sealText;
-
-    // Collector's Box-Art Frame sync
-    const f = state.frame || {};
-    const frameOn = Boolean(f.showCollectorFrame);
-    if (toggleCollectorFrame) toggleCollectorFrame.checked = frameOn;
-    if (toggleCriticStrip) {
-      toggleCriticStrip.checked = Boolean(f.showCriticStrip);
-      toggleCriticStrip.disabled = !frameOn;
-    }
-    if (inputCriticQuote) {
-      if (document.activeElement !== inputCriticQuote) inputCriticQuote.value = f.criticQuote || '';
-      inputCriticQuote.disabled = !frameOn || !f.showCriticStrip;
-    }
-    if (inputEditionVol) {
-      if (document.activeElement !== inputEditionVol) inputEditionVol.value = f.editionVol || '';
-      inputEditionVol.disabled = !frameOn || !f.showCriticStrip;
-    }
-    if (toggleBillingBlock) {
-      toggleBillingBlock.checked = Boolean(f.showBillingBlock);
-      toggleBillingBlock.disabled = !frameOn;
-    }
-    if (inputComingSoon) {
-      if (document.activeElement !== inputComingSoon) inputComingSoon.value = f.comingSoonText || '';
-      inputComingSoon.disabled = !frameOn || !f.showBillingBlock;
-    }
-    if (inputBillingCredits) {
-      if (document.activeElement !== inputBillingCredits) inputBillingCredits.value = f.billingCredits || '';
-      inputBillingCredits.disabled = !frameOn || !f.showBillingBlock;
-    }
-    if (toggleInnerHairline) {
-      toggleInnerHairline.checked = Boolean(f.showInnerHairline);
-      toggleInnerHairline.disabled = !frameOn;
-    }
-
-    // Effects sync
     const fx = state.effects;
     if (rangePainterly) rangePainterly.value = String(fx.painterly);
     if (valPainterly) valPainterly.textContent = `${fx.painterly}%`;
@@ -466,8 +313,6 @@ export function initLeftSidebar(store, { onToast }) {
     if (valGrain) valGrain.textContent = `${fx.grain}%`;
     if (rangeVignette) rangeVignette.value = String(fx.vignette);
     if (valVignette) valVignette.textContent = `${fx.vignette}%`;
-    if (togglePalms) togglePalms.checked = Boolean(fx.showPalms);
-    if (toggleHorizonDisc) toggleHorizonDisc.checked = Boolean(fx.showHorizonDisc);
   }
 
   return { sync, handleIncomingFiles };

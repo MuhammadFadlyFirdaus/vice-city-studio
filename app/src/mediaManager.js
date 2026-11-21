@@ -13,12 +13,14 @@ export const MAX_INTERNAL_DIMENSION = 2560;
 export const THUMB_MAX_DIMENSION = 240;
 
 export const BUNDLED_SAMPLES = [
-  { id: 'sample-boulevard', name: 'Boulevard Convertible', url: './samples/boulevard.jpg' },
-  { id: 'sample-rooftop', name: 'Rooftop Dusk', url: './samples/rooftop-dusk.jpg' },
-  { id: 'sample-coupe', name: 'Neon Twilight Coupe', url: './samples/neon-coupe.jpg' },
-  { id: 'sample-pier', name: 'Turquoise Pier', url: './samples/pier.jpg' },
-  { id: 'sample-lookout', name: 'Marina Lookout', url: './samples/neon-lookout.jpg' },
-  { id: 'sample-boss', name: 'Biscayne Boss', url: './samples/miami-boss.jpg' },
+  { id: 'sample-hero-kingpin', name: 'The Boss', url: './samples/hero-kingpin.jpg' },
+  { id: 'sample-boulevard', name: 'The Driver', url: './samples/boulevard.jpg' },
+  { id: 'sample-night-rider', name: 'The Rider', url: './samples/night-rider.jpg' },
+  { id: 'sample-crimson-mechanic', name: 'The Mechanic', url: './samples/crimson-mechanic.jpg' },
+  { id: 'sample-pier', name: 'The Captain', url: './samples/pier.jpg' },
+  { id: 'sample-rooftop', name: 'The Fixer', url: './samples/rooftop-dusk.jpg' },
+  { id: 'sample-lookout', name: 'The Lookout', url: './samples/neon-lookout.jpg' },
+  { id: 'sample-boss', name: 'The Insider', url: './samples/miami-boss.jpg' },
 ];
 
 let nextPhotoSeq = 1;

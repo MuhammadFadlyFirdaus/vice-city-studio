@@ -1,7 +1,11 @@
 // Direct canvas interactions for Vice City Studio:
-// Click panel to select, drag to pan crop, wheel to zoom, and drag-and-drop photos onto a panel.
+// - Click panel to select
+// - Drag inside panel to pan crop
+// - Drag numbered panel badge (1..N) onto another panel to swap panels
+// - Wheel over panel to zoom
+// - Drag-and-drop local image files onto a panel (or batch drop)
 
-import { hitTestPanel } from './templates.js';
+import { hitTestPanel, hitTestPanelBadge } from './templates.js';
 import { computePanelPhotoRect } from './posterRenderer.js';
 import { replacePanelPhotoFromFile } from './mediaManager.js';
 
@@ -27,6 +31,31 @@ export function initCanvasInteraction(canvas, store, { getGeometries, onDropMult
     if (e.button !== 0) return;
     const geoms = getGeometries();
     const pt = clientToCanvasPoint(canvas, e.clientX, e.clientY);
+    const minDim = Math.min(canvas.width, canvas.height);
+
+    // 1. Check numbered panel badge (1..N) first for drag-to-swap
+    const badgeIdx = hitTestPanelBadge(geoms, pt.x, pt.y, minDim);
+    if (badgeIdx >= 0) {
+      store.selectPanel(badgeIdx);
+      dragState = {
+        mode: 'swap',
+        pointerId: e.pointerId,
+        sourceIndex: badgeIdx,
+        targetIndex: badgeIdx,
+        startX: pt.x,
+        startY: pt.y,
+        moved: false,
+      };
+      try {
+        canvas.setPointerCapture(e.pointerId);
+      } catch {
+        // Ignore synthetic event capture errors
+      }
+      canvas.classList.add('is-swapping');
+      return;
+    }
+
+    // 2. Otherwise select panel & start pan-crop drag
     const hitIdx = hitTestPanel(geoms, pt.x, pt.y);
     if (hitIdx < 0) return;
 
@@ -35,6 +64,7 @@ export function initCanvasInteraction(canvas, store, { getGeometries, onDropMult
     const photo = store.getPhoto(panel?.photoId);
 
     dragState = {
+      mode: 'pan',
       pointerId: e.pointerId,
       panelIndex: hitIdx,
       startX: pt.x,
@@ -57,10 +87,33 @@ export function initCanvasInteraction(canvas, store, { getGeometries, onDropMult
   });
 
   canvas.addEventListener('pointermove', (e) => {
-    if (!dragState || e.pointerId !== dragState.pointerId) return;
+    const geoms = getGeometries();
+    const pt = clientToCanvasPoint(canvas, e.clientX, e.clientY);
+
+    if (!dragState) {
+      const minDim = Math.min(canvas.width, canvas.height);
+      const hoverBadge = hitTestPanelBadge(geoms, pt.x, pt.y, minDim);
+      canvas.classList.toggle('is-badge-hover', hoverBadge >= 0);
+      return;
+    }
+
+    if (e.pointerId !== dragState.pointerId) return;
+
+    if (dragState.mode === 'swap') {
+      const dx = pt.x - dragState.startX;
+      const dy = pt.y - dragState.startY;
+      if (Math.hypot(dx, dy) >= 6) {
+        dragState.moved = true;
+      }
+      const hoverIdx = hitTestPanel(geoms, pt.x, pt.y);
+      if (hoverIdx >= 0) {
+        dragState.targetIndex = hoverIdx;
+      }
+      return;
+    }
+
     if (!dragState.photo) return;
 
-    const pt = clientToCanvasPoint(canvas, e.clientX, e.clientY);
     const dx = pt.x - dragState.startX;
     const dy = pt.y - dragState.startY;
     if (!dragState.moved && Math.hypot(dx, dy) < 2) return;
@@ -80,7 +133,6 @@ export function initCanvasInteraction(canvas, store, { getGeometries, onDropMult
     const nextPanX = clamp(dragState.origPanX - effDx / halfSlackX, -1, 1);
     const nextPanY = clamp(dragState.origPanY - dy / halfSlackY, -1, 1);
 
-    // Record exactly one undo snapshot at the start of the drag gesture
     const recordNow = !dragState.snapshotRecorded;
     dragState.snapshotRecorded = true;
     dragState.moved = true;
@@ -98,13 +150,28 @@ export function initCanvasInteraction(canvas, store, { getGeometries, onDropMult
   function endDrag(e) {
     if (!dragState) return;
     if (e && dragState.pointerId !== e.pointerId) return;
+
+    if (dragState.mode === 'swap') {
+      const geoms = getGeometries();
+      let dropIdx = dragState.targetIndex;
+      if (e && Number.isFinite(e.clientX) && Number.isFinite(e.clientY)) {
+        const pt = clientToCanvasPoint(canvas, e.clientX, e.clientY);
+        const hit = hitTestPanel(geoms, pt.x, pt.y);
+        if (hit >= 0) dropIdx = hit;
+      }
+      if (dragState.moved && dropIdx >= 0 && dropIdx !== dragState.sourceIndex) {
+        store.swapPanels(dragState.sourceIndex, dropIdx);
+        onToast?.(`Swapped Panel ${dragState.sourceIndex + 1} ↔ Panel ${dropIdx + 1}`);
+      }
+    }
+
     try {
       canvas.releasePointerCapture(dragState.pointerId);
     } catch {
       // Ignore
     }
     dragState = null;
-    canvas.classList.remove('is-dragging');
+    canvas.classList.remove('is-dragging', 'is-swapping');
   }
 
   canvas.addEventListener('pointerup', endDrag);

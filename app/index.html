@@ -12,11 +12,11 @@
 </head>
 <body>
   <div id="studio-shell" class="studio-shell">
-    <!-- TOP NAVIGATION BAR -->
+    <!-- TOP HEADER BAR (48px) -->
     <header id="studio-topbar" class="topbar">
       <div class="brand">
         <span class="brand-mark" aria-hidden="true">
-          <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+          <svg width="24" height="24" viewBox="0 0 26 26" fill="none">
             <defs>
               <linearGradient id="vcSun" x1="0" y1="0" x2="26" y2="26" gradientUnits="userSpaceOnUse">
                 <stop offset="0%" stop-color="#ffbe55"/>
@@ -32,354 +32,341 @@
         </span>
         <div class="brand-copy">
           <span class="brand-title">VICE CITY STUDIO</span>
-          <span class="brand-sub">Offline Cover Art Lab</span>
+          <span class="brand-sub">Cover Art Lab</span>
         </div>
       </div>
 
-      <div id="format-selector" class="format-pills" role="group" aria-label="Export Canvas Size">
-        <button type="button" class="pill-btn is-active" data-format="landscape">1920×1080 <span>16:9</span></button>
-        <button type="button" class="pill-btn" data-format="portrait">1080×1350 <span>4:5</span></button>
-        <button type="button" class="pill-btn" data-format="square">1080×1080 <span>1:1</span></button>
-      </div>
+      <nav id="step-breadcrumbs" class="step-breadcrumbs" aria-label="3-Step Workflow">
+        <button id="step-pill-photos" type="button" class="step-pill is-active" data-step="photos">① ADD PHOTOS</button>
+        <span class="step-arrow" aria-hidden="true">→</span>
+        <button id="step-pill-caption" type="button" class="step-pill" data-step="caption">② CAPTION &amp; STYLE</button>
+        <span class="step-arrow" aria-hidden="true">→</span>
+        <button id="step-pill-export" type="button" class="step-pill" data-step="export">③ EXPORT PNG</button>
+      </nav>
 
       <div class="topbar-actions">
         <button id="btn-undo" type="button" class="icon-btn" title="Undo (Ctrl+Z)" disabled>Undo</button>
         <button id="btn-redo" type="button" class="icon-btn" title="Redo (Ctrl+Y)" disabled>Redo</button>
         <button id="btn-reset" type="button" class="icon-btn" title="Reset Design">Reset</button>
-        <button id="btn-export-png" type="button" class="primary-cta">Export PNG</button>
+        <span class="privacy-badge" title="100% local processing — zero uploads">🔒 Photos stay on your device</span>
       </div>
     </header>
 
-    <!-- 3-PANE WORKSPACE -->
+    <!-- ZERO-TAB 3-PANE WORKSPACE -->
     <main class="workspace">
-      <!-- LEFT SIDEBAR -->
-      <aside id="studio-sidebar" class="sidebar" aria-label="Design Tools">
-        <nav id="sidebar-tabs" class="tab-bar" role="tablist">
-          <button type="button" class="tab-btn is-active" data-tab="templates" role="tab" aria-selected="true">Templates</button>
-          <button type="button" class="tab-btn" data-tab="photos" role="tab" aria-selected="false">Photos</button>
-          <button type="button" class="tab-btn" data-tab="text" role="tab" aria-selected="false">Text</button>
-          <button type="button" class="tab-btn" data-tab="effects" role="tab" aria-selected="false">Effects</button>
-        </nav>
-
+      <!-- LEFT RAIL (244px): ① ADD PHOTOS + LAYOUT + COLOUR GRADE -->
+      <aside id="studio-sidebar" class="sidebar" aria-label="Photos, Layout and Colour Grade">
         <div class="sidebar-scroll">
-          <!-- TAB: TEMPLATES -->
-          <section id="tab-templates" class="tab-panel is-active" role="tabpanel">
+          <!-- ① ADD PHOTOS -->
+          <section class="rail-section">
             <div class="section-head">
-              <h2>Poster Layouts</h2>
-              <span class="badge-pill">Keeps Photos &amp; Text</span>
-            </div>
-            <div id="template-list" class="template-list"></div>
-            <div class="hint-card">
-              <strong>Multi-Panel Auto-Fit</strong>
-              <p>Upload 1 photo to fill every panel with face-safe framing, or drop multiple photos to fill individual panels.</p>
-            </div>
-          </section>
-
-          <!-- TAB: PHOTOS -->
-          <section id="tab-photos" class="tab-panel" role="tabpanel">
-            <div class="section-head">
-              <h2>Local Photos</h2>
-              <span class="badge-pill">100% Offline</span>
+              <h2>① ADD PHOTOS</h2>
+              <span id="photo-count" class="badge-pill">8 photos</span>
             </div>
 
-            <div id="photo-dropzone" class="dropzone" tabindex="0" role="button" aria-label="Upload local photos">
+            <div id="photo-dropzone" class="dropzone" tabindex="0" role="button" aria-label="Choose or drop local photos">
               <input id="photo-file-input" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden>
-              <div class="dropzone-title">Drop Photos Here or Click</div>
-              <div class="dropzone-sub">JPG, PNG, WebP • Auto-scaled locally</div>
+              <span class="dropzone-title">+ CHOOSE PHOTOS</span>
+              <span class="dropzone-sub">drop / paste anywhere</span>
             </div>
 
             <div class="row-actions">
-              <button id="btn-upload-photos" type="button" class="sec-btn">Add Photos</button>
-              <button id="btn-autofill-panels" type="button" class="sec-btn accent-outline">Smart Auto-Fill</button>
+              <button id="btn-demo-cast" type="button" class="sec-btn">★ 8-Cast Demo</button>
+              <button id="btn-autofill-panels" type="button" class="sec-btn accent-outline">✨ Auto-Fill</button>
             </div>
 
-            <div class="section-subhead">
-              <span>Photo Tray</span>
-              <span id="photo-count" class="muted-count">0 photos</span>
-            </div>
-            <div id="photo-tray" class="photo-tray"></div>
+            <div id="photo-tray" class="photo-tray" aria-label="Loaded cast photos"></div>
           </section>
 
-          <!-- TAB: TEXT -->
-          <section id="tab-text" class="tab-panel" role="tabpanel">
-            <div class="control-group">
-              <div class="section-head">
-                <h2>Main Title</h2>
-              </div>
-              <label class="field">
-                <span>Caption Text</span>
-                <input id="input-main-title" type="text" maxlength="32" value="NEON SHORE">
-              </label>
-              <div class="grid-2">
-                <label class="field">
-                  <span>Font</span>
-                  <select id="select-title-font">
-                    <option value="Anton">Anton</option>
-                    <option value="Bebas Neue">Bebas Neue</option>
-                    <option value="Oswald">Oswald</option>
-                    <option value="Pacifico">Pacifico</option>
-                  </select>
-                </label>
-                <label class="field">
-                  <span>Lettering Style</span>
-                  <select id="select-title-style">
-                    <option value="outrun-striped" selected>Outrun Striped Chrome</option>
-                    <option value="retro-chrome">Retro Chrome</option>
-                    <option value="sunset-grad">Sunset Heat</option>
-                    <option value="neon-pink">Electric Pink</option>
-                    <option value="pure-white">Bold White</option>
-                  </select>
-                </label>
-              </div>
-              <div class="grid-2">
-                <label class="field">
-                  <span>Position</span>
-                  <select id="select-title-pos">
-                    <option value="bottom">Bottom</option>
-                    <option value="center">Center</option>
-                    <option value="top">Top</option>
-                  </select>
-                </label>
-                <label class="field">
-                  <span>Alignment</span>
-                  <select id="select-title-align">
-                    <option value="center">Center</option>
-                    <option value="left">Left</option>
-                    <option value="right">Right</option>
-                  </select>
-                </label>
-              </div>
-              <label class="slider-field">
-                <span class="slider-top"><span>Title Size</span><output id="val-title-size">100%</output></span>
-                <input id="range-title-size" type="range" min="60" max="150" value="100">
-              </label>
-              <label class="slider-field">
-                <span class="slider-top"><span>Ink Outline</span><output id="val-title-outline">14</output></span>
-                <input id="range-title-outline" type="range" min="0" max="24" value="14">
-              </label>
-              <label class="slider-field">
-                <span class="slider-top"><span>3D Drop Shadow</span><output id="val-title-shadow">12</output></span>
-                <input id="range-title-shadow" type="range" min="0" max="24" value="12">
-              </label>
+          <!-- LAYOUT (3x2 mini SVG cards) -->
+          <section class="rail-section">
+            <div class="section-head">
+              <h2>LAYOUT</h2>
+              <span class="badge-pill">6 Layouts</span>
             </div>
-
-            <div class="control-group">
-              <div class="section-head">
-                <h2>Neon Subtitle &amp; Tagline</h2>
-              </div>
-              <label class="field">
-                <span>Script Subtitle</span>
-                <input id="input-subtitle" type="text" maxlength="36" value="Vice Nights">
-              </label>
-              <div class="grid-2">
-                <label class="field">
-                  <span>Subtitle Font</span>
-                  <select id="select-subtitle-font">
-                    <option value="Pacifico">Pacifico</option>
-                    <option value="Bebas Neue">Bebas Neue</option>
-                    <option value="Oswald">Oswald</option>
-                    <option value="Anton">Anton</option>
-                  </select>
-                </label>
-                <label class="field">
-                  <span>Neon Tint</span>
-                  <input id="input-subtitle-color" type="color" value="#ff4fd8">
-                </label>
-              </div>
-              <label class="slider-field">
-                <span class="slider-top"><span>Subtitle Size</span><output id="val-subtitle-size">100%</output></span>
-                <input id="range-subtitle-size" type="range" min="60" max="150" value="100">
-              </label>
-              <label class="slider-field">
-                <span class="slider-top"><span>Neon Glow</span><output id="val-subtitle-glow">78%</output></span>
-                <input id="range-subtitle-glow" type="range" min="0" max="100" value="78">
-              </label>
-              <label class="field">
-                <span>Bottom Tagline</span>
-                <input id="input-tagline" type="text" maxlength="54" value="SUNSET BOULEVARD • COASTAL EDITION">
-              </label>
-            </div>
-
-            <div class="control-group">
-              <div class="section-head">
-                <h2>Poster Badges</h2>
-              </div>
-              <label class="toggle-row">
-                <span>Panel Cast Tags</span>
-                <input id="toggle-role-tags" type="checkbox" checked>
-              </label>
-              <label class="toggle-row">
-                <span>Gold-Foil Medallion</span>
-                <input id="toggle-edition-seal" type="checkbox" checked>
-              </label>
-              <label class="field">
-                <span>Medallion Label</span>
-                <input id="input-seal-text" type="text" maxlength="28" value="ORIGINAL COVER ART • ★★★">
-              </label>
-            </div>
-
-            <div class="control-group">
-              <div class="section-head">
-                <h2>Collector's Box-Art Frame</h2>
-              </div>
-              <label class="toggle-row">
-                <span>Poster Frame (Master)</span>
-                <input id="toggle-collector-frame" type="checkbox" checked>
-              </label>
-              <label class="toggle-row">
-                <span>Top Critic Strip</span>
-                <input id="toggle-critic-strip" type="checkbox" checked>
-              </label>
-              <label class="field">
-                <span>Critic Review Quote</span>
-                <input id="input-critic-quote" type="text" maxlength="48" value="AN INSTANT COASTAL CLASSIC">
-              </label>
-              <div class="grid-2">
-                <label class="field">
-                  <span>Edition Badge</span>
-                  <input id="input-edition-vol" type="text" maxlength="14" value="VOL. 1">
-                </label>
-                <label class="field">
-                  <span>Release Stamp</span>
-                  <input id="input-coming-soon" type="text" maxlength="20" value="COMING SOON">
-                </label>
-              </div>
-              <label class="toggle-row">
-                <span>Bottom Cinema Billing</span>
-                <input id="toggle-billing-block" type="checkbox" checked>
-              </label>
-              <label class="field">
-                <span>Billing Credits</span>
-                <input id="input-billing-credits" type="text" maxlength="120" value="VICE CITY STUDIO PRESENTS • A NEON SHORE PRODUCTION • SHOT IN MIAMI • MUSIC BY SYNTHWAVE COLLECTIVE">
-              </label>
-              <label class="toggle-row">
-                <span>Panel Cream Hairline</span>
-                <input id="toggle-inner-hairline" type="checkbox" checked>
-              </label>
-            </div>
+            <div id="template-list" class="layout-grid" role="group" aria-label="Poster layouts"></div>
           </section>
 
-          <!-- TAB: EFFECTS -->
-          <section id="tab-effects" class="tab-panel" role="tabpanel">
-            <div class="control-group">
-              <div class="section-head">
-                <h2>Vice Color Grade</h2>
-              </div>
-              <div id="grade-preset-grid" class="preset-grid"></div>
-              <label class="slider-field">
-                <span class="slider-top"><span>Painterly / Poster Ink</span><output id="val-painterly">62%</output></span>
-                <input id="range-painterly" type="range" min="0" max="100" value="62">
-              </label>
-              <label class="slider-field">
-                <span class="slider-top"><span>Brightness</span><output id="val-brightness">101%</output></span>
-                <input id="range-brightness" type="range" min="70" max="135" value="101">
-              </label>
-              <label class="slider-field">
-                <span class="slider-top"><span>Contrast</span><output id="val-contrast">120%</output></span>
-                <input id="range-contrast" type="range" min="75" max="150" value="120">
-              </label>
-              <label class="slider-field">
-                <span class="slider-top"><span>Saturation</span><output id="val-saturation">122%</output></span>
-                <input id="range-saturation" type="range" min="50" max="165" value="122">
-              </label>
+          <!-- COLOUR GRADE (3x2 LIVE graded canvas swatches) -->
+          <section class="rail-section">
+            <div class="section-head">
+              <h2>COLOUR GRADE</h2>
+              <span class="badge-pill">Live</span>
             </div>
+            <div id="grade-preset-grid" class="grade-grid" role="group" aria-label="Colour grade presets"></div>
 
-            <div class="control-group">
-              <div class="section-head">
-                <h2>Atmospheric Overlays</h2>
+            <label class="slider-field compact-slider">
+              <span class="slider-top"><span>Poster Ink</span><output id="val-painterly">45%</output></span>
+              <input id="range-painterly" type="range" min="0" max="100" value="45">
+            </label>
+
+            <details id="fine-tune-details" class="fine-tune-details">
+              <summary>Fine-Tune Effects</summary>
+              <div class="fine-tune-body">
+                <label class="slider-field">
+                  <span class="slider-top"><span>Brightness</span><output id="val-brightness">102%</output></span>
+                  <input id="range-brightness" type="range" min="70" max="135" value="102">
+                </label>
+                <label class="slider-field">
+                  <span class="slider-top"><span>Contrast</span><output id="val-contrast">118%</output></span>
+                  <input id="range-contrast" type="range" min="75" max="150" value="118">
+                </label>
+                <label class="slider-field">
+                  <span class="slider-top"><span>Saturation</span><output id="val-saturation">118%</output></span>
+                  <input id="range-saturation" type="range" min="50" max="165" value="118">
+                </label>
+                <label class="slider-field">
+                  <span class="slider-top"><span>Sunset Wash</span><output id="val-sunset-overlay">28%</output></span>
+                  <input id="range-sunset-overlay" type="range" min="0" max="100" value="28">
+                </label>
+                <label class="slider-field">
+                  <span class="slider-top"><span>Neon Rim</span><output id="val-neon-rim">42%</output></span>
+                  <input id="range-neon-rim" type="range" min="0" max="100" value="42">
+                </label>
+                <label class="slider-field">
+                  <span class="slider-top"><span>Film Grain</span><output id="val-grain">14%</output></span>
+                  <input id="range-grain" type="range" min="0" max="100" value="14">
+                </label>
+                <label class="slider-field">
+                  <span class="slider-top"><span>Vignette</span><output id="val-vignette">32%</output></span>
+                  <input id="range-vignette" type="range" min="0" max="100" value="32">
+                </label>
               </div>
-              <label class="slider-field">
-                <span class="slider-top"><span>Sunset Sky Wash</span><output id="val-sunset-overlay">34%</output></span>
-                <input id="range-sunset-overlay" type="range" min="0" max="100" value="34">
-              </label>
-              <label class="slider-field">
-                <span class="slider-top"><span>Dual Neon Rim</span><output id="val-neon-rim">46%</output></span>
-                <input id="range-neon-rim" type="range" min="0" max="100" value="46">
-              </label>
-              <label class="slider-field">
-                <span class="slider-top"><span>Film Grain</span><output id="val-grain">18%</output></span>
-                <input id="range-grain" type="range" min="0" max="100" value="18">
-              </label>
-              <label class="slider-field">
-                <span class="slider-top"><span>Vignette</span><output id="val-vignette">34%</output></span>
-                <input id="range-vignette" type="range" min="0" max="100" value="34">
-              </label>
-              <label class="toggle-row">
-                <span>Palm Silhouettes</span>
-                <input id="toggle-palms" type="checkbox" checked>
-              </label>
-              <label class="toggle-row">
-                <span>Sunset Horizon Disc</span>
-                <input id="toggle-horizon-disc" type="checkbox">
-              </label>
-            </div>
+            </details>
           </section>
         </div>
       </aside>
 
-      <!-- CENTER LIVE CANVAS STAGE -->
+      <!-- CENTER CANVAS STAGE -->
       <section id="studio-stage" class="stage" aria-label="Live Cover Preview">
+        <div class="stage-top-bar">
+          <div id="format-selector" class="format-pills" role="group" aria-label="Export Canvas Size">
+            <button type="button" class="pill-btn" data-format="square">1:1 <span>1080×1080</span></button>
+            <button type="button" class="pill-btn" data-format="portrait">4:5 <span>1080×1350</span></button>
+            <button type="button" class="pill-btn is-active" data-format="landscape">16:9 <span>1920×1080</span></button>
+          </div>
+          <span id="stage-dims" class="stage-live-label">1920×1080 • Cast Mosaic • Face-Aware</span>
+        </div>
+
         <div class="stage-canvas-wrap">
           <canvas id="poster-canvas" width="1920" height="1080" aria-label="Vice City cover art canvas"></canvas>
         </div>
-        <div id="canvas-hint" class="stage-bar">
-          <span id="stage-dims">1920 × 1080 px • Crime Epic 6-Panel</span>
-          <span class="stage-tips">Click panel to select • Drag to pan • Wheel to zoom • Drop photo onto panel</span>
+
+        <!-- INLINE PANEL QUICK TOOLBAR -->
+        <div id="panel-toolbar" class="panel-toolbar" role="toolbar" aria-label="Selected panel controls">
+          <span id="selected-panel-badge" class="panel-badge-chip">PANEL 1</span>
+          <button id="btn-prev-photo" type="button" class="mini-btn" title="Previous photo">◀ Photo</button>
+          <button id="btn-next-photo" type="button" class="mini-btn" title="Next photo">Photo ▶</button>
+          <button id="btn-panel-flip" type="button" class="mini-btn" title="Flip horizontal">⇄ Flip</button>
+          <label class="toolbar-zoom">
+            <span>Zoom</span>
+            <input id="range-panel-zoom" type="range" min="100" max="260" value="104" aria-label="Panel zoom">
+            <output id="val-panel-zoom">1.04×</output>
+          </label>
+          <button id="btn-panel-face-fit" type="button" class="mini-btn accent-btn" title="Center face in upper-third safe zone">Face Fit</button>
+          <button id="btn-panel-reset-crop" type="button" class="mini-btn" title="Reset panel crop">Reset</button>
+          <button id="btn-stage-autofill" type="button" class="mini-btn accent-btn" title="Face-Aware Auto-Fill all panels">✨ Auto-Fill</button>
         </div>
+
+        <!-- LIVE 3-SIZE PREVIEW STRIP -->
+        <div id="live-size-strip" class="live-size-strip" role="group" aria-label="Live 3-size previews">
+          <button type="button" class="size-preview-card" data-format="square">
+            <canvas id="preview-canvas-square" width="112" height="112"></canvas>
+            <span class="size-preview-meta"><strong>1:1</strong> 1080×1080</span>
+          </button>
+          <button type="button" class="size-preview-card" data-format="portrait">
+            <canvas id="preview-canvas-portrait" width="90" height="112"></canvas>
+            <span class="size-preview-meta"><strong>4:5</strong> 1080×1350</span>
+          </button>
+          <button type="button" class="size-preview-card is-active" data-format="landscape">
+            <canvas id="preview-canvas-landscape" width="199" height="112"></canvas>
+            <span class="size-preview-meta"><strong>16:9</strong> 1920×1080</span>
+          </button>
+        </div>
+
         <div id="studio-toast" class="toast" role="status" aria-live="polite"></div>
       </section>
 
-      <!-- RIGHT PANEL INSPECTOR -->
-      <aside id="studio-inspector" class="inspector" aria-label="Panel Crop Inspector">
+      <!-- RIGHT RAIL (268px): ② CAPTION & FRAME + PINNED ③ EXPORT PNG -->
+      <aside id="studio-inspector" class="inspector" aria-label="Caption, Frame and Export">
         <div class="inspector-scroll">
-          <div class="section-head">
-            <h2>Panel Inspector</h2>
-            <span id="selected-panel-badge" class="badge-pill is-accent">Panel 1</span>
-          </div>
-
-          <div id="panel-pills" class="panel-pills" role="group" aria-label="Select Poster Panel"></div>
-
-          <div class="control-group">
-            <div class="section-subhead">
-              <span>Assigned Photo</span>
-              <span id="inspector-photo-name" class="muted-count">None</span>
+          <section class="rail-section">
+            <div class="section-head">
+              <h2>② CAPTION &amp; FRAME</h2>
+              <span class="badge-pill">Zero-Collision</span>
             </div>
-            <div class="row-actions">
-              <button id="btn-panel-replace" type="button" class="sec-btn">Replace Photo</button>
-              <button id="btn-panel-remove" type="button" class="sec-btn danger-outline">Remove</button>
-            </div>
-            <input id="panel-replace-input" type="file" accept="image/jpeg,image/png,image/webp" hidden>
-          </div>
 
-          <div class="control-group">
-            <div class="section-subhead"><span>Crop &amp; Position</span></div>
-            <label class="slider-field">
-              <span class="slider-top"><span>Zoom</span><output id="val-panel-zoom">1.00×</output></span>
-              <input id="range-panel-zoom" type="range" min="100" max="260" value="100">
-            </label>
-            <label class="slider-field">
-              <span class="slider-top"><span>Pan X</span><output id="val-panel-pan-x">0%</output></span>
-              <input id="range-panel-pan-x" type="range" min="-100" max="100" value="0">
-            </label>
-            <label class="slider-field">
-              <span class="slider-top"><span>Pan Y</span><output id="val-panel-pan-y">-18%</output></span>
-              <input id="range-panel-pan-y" type="range" min="-100" max="100" value="-18">
-            </label>
-            <div class="row-actions">
-              <button id="btn-panel-flip" type="button" class="sec-btn">Flip H</button>
-              <button id="btn-panel-reset-crop" type="button" class="sec-btn">Reset Crop</button>
-            </div>
             <label class="field">
-              <span>Panel Role Label</span>
-              <input id="input-panel-role" type="text" maxlength="18" value="THE DRIVER">
+              <span>Main Title</span>
+              <input id="input-main-title" type="text" maxlength="32" value="NEON EMPIRE">
             </label>
-          </div>
 
-          <div id="export-summary" class="export-card">
-            <div class="export-card-title">Lossless PNG Export</div>
-            <div id="export-card-meta" class="export-card-meta">1920 × 1080 px (Landscape 16:9)</div>
-            <button id="btn-export-secondary" type="button" class="primary-cta full-width">Download PNG</button>
+            <div class="grid-2">
+              <label class="field">
+                <span>Font</span>
+                <select id="select-title-font">
+                  <option value="Anton" selected>Anton</option>
+                  <option value="Bebas Neue">Bebas Neue</option>
+                  <option value="Oswald">Oswald</option>
+                  <option value="Pacifico">Pacifico</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Style</span>
+                <select id="select-title-style">
+                  <option value="outrun-striped" selected>Outrun Striped</option>
+                  <option value="retro-chrome">Retro Chrome</option>
+                  <option value="sunset-grad">Sunset Heat</option>
+                  <option value="neon-pink">Electric Pink</option>
+                  <option value="pure-white">Bold White</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="grid-sub">
+              <label class="field">
+                <span>Script Subtitle</span>
+                <input id="input-subtitle" type="text" maxlength="36" value="Coastal Nights">
+              </label>
+              <label class="field">
+                <span>Script Font</span>
+                <select id="select-subtitle-font">
+                  <option value="Pacifico" selected>Pacifico</option>
+                  <option value="Bebas Neue">Bebas Neue</option>
+                  <option value="Oswald">Oswald</option>
+                  <option value="Anton">Anton</option>
+                </select>
+              </label>
+              <label class="field color-field">
+                <span>Tint</span>
+                <input id="input-subtitle-color" type="color" value="#ff4fd8" aria-label="Neon subtitle tint">
+              </label>
+            </div>
+
+            <label class="field">
+              <span>Tagline Ribbon</span>
+              <input id="input-tagline" type="text" maxlength="54" value="SEVEN PLAYERS • ONE COAST • NO WAY OUT">
+            </label>
+
+            <label class="field">
+              <span>Review Quote</span>
+              <input id="input-critic-quote" type="text" maxlength="56" value="THE SUN-DRENCHED CRIME EPIC OF THE YEAR">
+            </label>
+
+            <div class="grid-source">
+              <label class="field">
+                <span>Source</span>
+                <input id="input-critic-source" type="text" maxlength="28" value="COASTAL CHRONICLE">
+              </label>
+              <label class="field">
+                <span>Vol</span>
+                <input id="input-edition-vol" type="text" maxlength="12" value="VOL. 1">
+              </label>
+            </div>
+
+            <label class="field">
+              <span>Cinema Billing</span>
+              <textarea id="input-billing-credits" rows="2" maxlength="220">a SOLARIS PICTURES production in association with PALM &amp; CHROME a M. VALDEZ film NEON EMPIRE music by THE NIGHTWAVE ORCHESTRA edited by K. SATO directed by M. VALDEZ</textarea>
+            </label>
+
+            <div class="grid-2">
+              <label class="field">
+                <span>Seal Label</span>
+                <input id="input-seal-text" type="text" maxlength="24" value="ORIGINAL ART">
+              </label>
+              <label class="field">
+                <span>Release Stamp</span>
+                <input id="input-coming-soon" type="text" maxlength="20" value="COMING SOON">
+              </label>
+            </div>
+
+            <!-- Compact Toggle Chips -->
+            <div class="toggle-chips" role="group" aria-label="Frame and overlay toggles">
+              <label class="chip-toggle"><input id="toggle-collector-frame" type="checkbox" checked><span>Frame</span></label>
+              <label class="chip-toggle"><input id="toggle-role-tags" type="checkbox" checked><span>Cast Tags</span></label>
+              <label class="chip-toggle"><input id="toggle-edition-seal" type="checkbox" checked><span>Foil Seal</span></label>
+              <label class="chip-toggle"><input id="toggle-horizon-disc" type="checkbox" checked><span>Sun Disc</span></label>
+              <label class="chip-toggle"><input id="toggle-inner-hairline" type="checkbox" checked><span>Hairline</span></label>
+              <label class="chip-toggle"><input id="toggle-palms" type="checkbox" checked><span>Palms</span></label>
+            </div>
+
+            <!-- 2-Column Cast Name Tags -->
+            <div class="cast-tags-section">
+              <div class="section-subhead">
+                <span>Cast Name Tags</span>
+                <span class="muted-count">Drag # badge to swap</span>
+              </div>
+              <div id="cast-role-grid" class="cast-role-grid"></div>
+            </div>
+
+            <details class="fine-tune-details">
+              <summary>Title &amp; Seal Fine-Tune</summary>
+              <div class="fine-tune-body">
+                <div class="grid-2">
+                  <label class="field">
+                    <span>Position</span>
+                    <select id="select-title-pos">
+                      <option value="bottom" selected>Auto / Bottom</option>
+                      <option value="center">Center</option>
+                      <option value="top">Top</option>
+                    </select>
+                  </label>
+                  <label class="field">
+                    <span>Align</span>
+                    <select id="select-title-align">
+                      <option value="center" selected>Center</option>
+                      <option value="left">Left</option>
+                      <option value="right">Right</option>
+                    </select>
+                  </label>
+                </div>
+                <label class="slider-field">
+                  <span class="slider-top"><span>Title Size</span><output id="val-title-size">100%</output></span>
+                  <input id="range-title-size" type="range" min="60" max="150" value="100">
+                </label>
+                <label class="slider-field">
+                  <span class="slider-top"><span>Ink Outline</span><output id="val-title-outline">14</output></span>
+                  <input id="range-title-outline" type="range" min="0" max="24" value="14">
+                </label>
+                <label class="slider-field">
+                  <span class="slider-top"><span>3D Drop Shadow</span><output id="val-title-shadow">12</output></span>
+                  <input id="range-title-shadow" type="range" min="0" max="24" value="12">
+                </label>
+                <label class="slider-field">
+                  <span class="slider-top"><span>Subtitle Size</span><output id="val-subtitle-size">100%</output></span>
+                  <input id="range-subtitle-size" type="range" min="60" max="150" value="100">
+                </label>
+                <label class="slider-field">
+                  <span class="slider-top"><span>Neon Glow</span><output id="val-subtitle-glow">78%</output></span>
+                  <input id="range-subtitle-glow" type="range" min="0" max="100" value="78">
+                </label>
+                <label class="field">
+                  <span>Seal Ring Legend</span>
+                  <input id="input-seal-ring" type="text" maxlength="48" value="SOLARIS COVER STUDIO ★ OFFICIAL EDITION ★">
+                </label>
+              </div>
+            </details>
+          </section>
+        </div>
+
+        <!-- PINNED FOOTER: ③ EXPORT PNG -->
+        <div id="export-summary" class="export-footer">
+          <div class="section-head">
+            <h2>③ EXPORT PNG</h2>
+            <span id="export-card-meta" class="badge-pill is-accent">1920×1080 (16:9)</span>
           </div>
+          <div class="export-size-row">
+            <button id="btn-export-square" type="button" class="size-export-btn" data-export-format="square">
+              <strong>1:1</strong><span>1080×1080</span>
+            </button>
+            <button id="btn-export-portrait" type="button" class="size-export-btn" data-export-format="portrait">
+              <strong>4:5</strong><span>1080×1350</span>
+            </button>
+            <button id="btn-export-landscape" type="button" class="size-export-btn" data-export-format="landscape">
+              <strong>16:9</strong><span>1920×1080</span>
+            </button>
+          </div>
+          <button id="btn-export-all" type="button" class="primary-cta full-width">↓ EXPORT ALL 3 PNGS</button>
         </div>
       </aside>
     </main>
