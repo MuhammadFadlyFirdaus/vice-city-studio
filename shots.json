@@ -1,5 +1,26 @@
 [
-  { "name": "1-cover.jpg", "query": "?shot=cover&photo=pier&caption=Sunset%20Heist", "w": 1080, "h": 1080 },
-  { "name": "2-editor.jpg", "query": "?shot=editor&photo=boulevard&caption=Boulevard%20Queen", "w": 1280, "h": 720 },
-  { "name": "3-cover.jpg", "query": "?shot=cover&photo=boulevard&caption=Boulevard%20Queen", "w": 1080, "h": 1080 }
+  {
+    "name": "01-cover-landscape.jpg",
+    "query": "?shot=cover&format=landscape&template=classic-vice&title=NEON%20SHORE&subtitle=Vice%20Nights&tagline=SUNSET%20BOULEVARD%20%E2%80%A2%20COASTAL%20EDITION&grade=vice-sunset&style=retro-chrome",
+    "w": 1280,
+    "h": 720
+  },
+  {
+    "name": "02-editor-studio.jpg",
+    "query": "?shot=editor&format=landscape&template=classic-vice&tab=templates",
+    "w": 1280,
+    "h": 760
+  },
+  {
+    "name": "03-cover-portrait.jpg",
+    "query": "?shot=cover&format=portrait&template=sunset-blvd&title=MIAMI%20HEAT&subtitle=Sunset%20Drive&tagline=DIAGONAL%20SUNSET%20%E2%80%A2%201080%C3%971350&grade=miami-heat&style=sunset-grad",
+    "w": 1024,
+    "h": 1280
+  },
+  {
+    "name": "04-cover-square.jpg",
+    "query": "?shot=cover&format=square&template=neon-night&title=NIGHT%20SHIFT&subtitle=Ocean%20Drive&tagline=MIDNIGHT%20BOULEVARD%20%E2%80%A2%201080%C3%971080&grade=neon-midnight&style=neon-pink",
+    "w": 1080,
+    "h": 1080
+  }
 ]

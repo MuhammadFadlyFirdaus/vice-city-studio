@@ -1,0 +1,298 @@
+// Central state store for Vice City Studio: pub/sub updates, 3 required export
+// formats, upper-third face-safe panel crop defaults, and 15-step Undo/Redo.
+
+export const EXPORT_FORMATS = Object.freeze({
+  landscape: Object.freeze({
+    id: 'landscape',
+    label: '1920×1080',
+    ratioLabel: 'Landscape 16:9',
+    width: 1920,
+    height: 1080,
+  }),
+  portrait: Object.freeze({
+    id: 'portrait',
+    label: '1080×1350',
+    ratioLabel: 'Portrait 4:5',
+    width: 1080,
+    height: 1350,
+  }),
+  square: Object.freeze({
+    id: 'square',
+    label: '1080×1080',
+    ratioLabel: 'Square 1:1',
+    width: 1080,
+    height: 1080,
+  }),
+});
+
+export const UNDO_LIMIT = 15;
+
+export const DEFAULT_PANEL_ROLES = ['HERO', 'DUSK', 'CRUISE', 'COAST', 'VICE'];
+
+export function createDefaultPanelState(index = 0, photoId = null) {
+  return {
+    photoId,
+    zoom: 1,
+    panX: 0,
+    panY: -0.18, // Upper-third face-safe default prevents cropping subject heads
+    flipX: false,
+    role: DEFAULT_PANEL_ROLES[index] || `PANEL ${index + 1}`,
+  };
+}
+
+export function createDefaultDesignState() {
+  return {
+    formatId: 'landscape',
+    templateId: 'classic-vice',
+    selectedPanelIndex: 0,
+    activeTab: 'templates',
+    panels: [
+      createDefaultPanelState(0, null),
+      createDefaultPanelState(1, null),
+      createDefaultPanelState(2, null),
+      createDefaultPanelState(3, null),
+      createDefaultPanelState(4, null),
+    ],
+    typography: {
+      mainTitle: 'NEON SHORE',
+      titleFont: 'Anton',
+      titleStyle: 'retro-chrome',
+      titlePos: 'bottom',
+      titleAlign: 'center',
+      titleSize: 100,
+      titleOutline: 12,
+      titleShadow: 10,
+      subtitle: 'Vice Nights',
+      subtitleFont: 'Pacifico',
+      subtitleColor: '#ff4fd8',
+      subtitleSize: 100,
+      subtitleGlow: 75,
+      tagline: 'SUNSET BOULEVARD • COASTAL EDITION',
+      showRoleTags: false,
+      showEditionSeal: true,
+      sealText: 'VICE EDITION • 26',
+    },
+    effects: {
+      gradePreset: 'vice-sunset',
+      painterly: 58,
+      brightness: 102,
+      contrast: 114,
+      saturation: 118,
+      sunsetOverlay: 42,
+      neonRim: 48,
+      grain: 22,
+      vignette: 36,
+      showPalms: true,
+      showHorizonDisc: false,
+    },
+  };
+}
+
+function cloneSnapshot(design) {
+  return JSON.parse(JSON.stringify(design));
+}
+
+export function createStudioStore() {
+  let state = createDefaultDesignState();
+  const photos = new Map(); // photoId -> { id, name, width, height, source, thumbUrl, isSample }
+  let photoOrder = [];
+  const undoStack = [];
+  const redoStack = [];
+  const listeners = new Set();
+
+  function notify(reason = 'update') {
+    for (const fn of listeners) {
+      fn(state, reason);
+    }
+  }
+
+  function recordUndoSnapshot() {
+    undoStack.push(cloneSnapshot(state));
+    if (undoStack.length > UNDO_LIMIT) {
+      undoStack.shift();
+    }
+    redoStack.length = 0;
+  }
+
+  function ensurePanelCount(count) {
+    while (state.panels.length < count) {
+      state.panels.push(createDefaultPanelState(state.panels.length, null));
+    }
+    if (state.selectedPanelIndex >= count) {
+      state.selectedPanelIndex = Math.max(0, count - 1);
+    }
+  }
+
+  return {
+    getState() {
+      return state;
+    },
+
+    getFormat() {
+      return EXPORT_FORMATS[state.formatId] || EXPORT_FORMATS.landscape;
+    },
+
+    subscribe(listener) {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+
+    mutate(updater, { recordHistory = true, reason = 'update' } = {}) {
+      if (recordHistory) {
+        recordUndoSnapshot();
+      }
+      updater(state);
+      notify(reason);
+    },
+
+    setFormat(formatId) {
+      if (!EXPORT_FORMATS[formatId] || state.formatId === formatId) return;
+      this.mutate((draft) => {
+        draft.formatId = formatId;
+      }, { recordHistory: true, reason: 'format' });
+    },
+
+    setTemplate(templateId, panelCount = 5) {
+      if (state.templateId === templateId) return;
+      this.mutate((draft) => {
+        draft.templateId = templateId;
+        ensurePanelCount(panelCount);
+      }, { recordHistory: true, reason: 'template' });
+    },
+
+    selectPanel(index) {
+      if (index < 0 || index >= state.panels.length) return;
+      if (state.selectedPanelIndex === index) return;
+      state.selectedPanelIndex = index;
+      notify('selection');
+    },
+
+    setActiveTab(tabId) {
+      if (state.activeTab === tabId) return;
+      state.activeTab = tabId;
+      notify('tab');
+    },
+
+    updatePanel(index, patch, { recordHistory = true } = {}) {
+      if (index < 0 || index >= state.panels.length) return;
+      this.mutate((draft) => {
+        Object.assign(draft.panels[index], patch);
+      }, { recordHistory, reason: 'panel' });
+    },
+
+    resetPanelCrop(index) {
+      if (index < 0 || index >= state.panels.length) return;
+      this.mutate((draft) => {
+        const panel = draft.panels[index];
+        panel.zoom = 1;
+        panel.panX = 0;
+        panel.panY = -0.18;
+        panel.flipX = false;
+      }, { recordHistory: true, reason: 'panel' });
+    },
+
+    updateTypography(patch, { recordHistory = true } = {}) {
+      this.mutate((draft) => {
+        Object.assign(draft.typography, patch);
+      }, { recordHistory, reason: 'typography' });
+    },
+
+    updateEffects(patch, { recordHistory = true } = {}) {
+      this.mutate((draft) => {
+        Object.assign(draft.effects, patch);
+      }, { recordHistory, reason: 'effects' });
+    },
+
+    // Photo library management (kept separate from JSON snapshots so bitmaps stay intact)
+    addPhoto(photoRecord) {
+      photos.set(photoRecord.id, photoRecord);
+      if (!photoOrder.includes(photoRecord.id)) {
+        photoOrder.push(photoRecord.id);
+      }
+      notify('photos');
+    },
+
+    removePhoto(photoId) {
+      if (!photos.has(photoId)) return;
+      recordUndoSnapshot();
+      const rec = photos.get(photoId);
+      if (rec && rec.thumbUrl && rec.thumbUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(rec.thumbUrl);
+      }
+      photos.delete(photoId);
+      photoOrder = photoOrder.filter((id) => id !== photoId);
+      for (const panel of state.panels) {
+        if (panel.photoId === photoId) {
+          panel.photoId = photoOrder[0] || null;
+        }
+      }
+      notify('photos');
+    },
+
+    getPhoto(photoId) {
+      return photoId ? photos.get(photoId) || null : null;
+    },
+
+    listPhotos() {
+      return photoOrder.map((id) => photos.get(id)).filter(Boolean);
+    },
+
+    clearHistory() {
+      undoStack.length = 0;
+      redoStack.length = 0;
+      notify('history');
+    },
+
+    canUndo() {
+      return undoStack.length > 0;
+    },
+
+    canRedo() {
+      return redoStack.length > 0;
+    },
+
+    undo() {
+      if (undoStack.length === 0) return false;
+      redoStack.push(cloneSnapshot(state));
+      const prev = undoStack.pop();
+      // Keep only photo assignments that still exist in library
+      for (const panel of prev.panels) {
+        if (panel.photoId && !photos.has(panel.photoId)) {
+          panel.photoId = photoOrder[0] || null;
+        }
+      }
+      state = prev;
+      notify('undo');
+      return true;
+    },
+
+    redo() {
+      if (redoStack.length === 0) return false;
+      undoStack.push(cloneSnapshot(state));
+      if (undoStack.length > UNDO_LIMIT) undoStack.shift();
+      const next = redoStack.pop();
+      for (const panel of next.panels) {
+        if (panel.photoId && !photos.has(panel.photoId)) {
+          panel.photoId = photoOrder[0] || null;
+        }
+      }
+      state = next;
+      notify('redo');
+      return true;
+    },
+
+    resetDesign(preservePhotoIds = true) {
+      recordUndoSnapshot();
+      const fresh = createDefaultDesignState();
+      if (preservePhotoIds && photoOrder.length > 0) {
+        fresh.panels.forEach((panel, idx) => {
+          panel.photoId = photoOrder[idx % photoOrder.length];
+        });
+      }
+      state = fresh;
+      notify('reset');
+    },
+  };
+}
+
+export const studioStore = createStudioStore();
